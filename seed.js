@@ -83,7 +83,7 @@ function _loadOne(name,callback){
 			if(callback){
 				callback(name);
 			}
-			node.load=node.onreadystatechange=null;
+			node.load=node.onreadystatechange=callback=null;
 
 		}
 
@@ -94,7 +94,7 @@ function _loadOne(name,callback){
 };
 
 
-
+//并发加载一组js文件 ， 每次调用会产生闭包
 function _loadGroup(ar,callback){
 
 	if(!ar){
@@ -105,12 +105,13 @@ function _loadGroup(ar,callback){
 		len=ar.length,
 		n,
 		loaded=C.Env._loaded,
-
 		
 
 	cb=function(name){
+		//剔除已经加载的文件
 		_delItem(ar,name);	
-
+		
+		//所有文件都加载完 调用callback函数
 		if(ar.length==0&&callback){
 			callback();
 			cb=ar=callback=null;
@@ -125,12 +126,16 @@ function _loadGroup(ar,callback){
 };
 
 
-
+//每次调用会产生closure
 function _load(thread){
+	//根据文件间的依赖关系 排序
 	var list=_sortLoad(thread),	
 
 	callback=function(){
+		//全部列队加载完毕
 		if(list.length==0){
+			//新添加的module可以会依赖其他module，依赖的module可能还未添加(add)，所以callback后继续
+			//调用_process函数，直到没有需要添加的module
 			_process(thread,true);
 			thread=callback=list=null;
 			return;
@@ -144,7 +149,8 @@ function _load(thread){
 };
 
 
-
+//根据文件间的依赖关系 排序
+//返回数组[array,array] array是包含可以并发加载（直接没有依赖关系的）文件的数组
 function _sortLoad(thread){
 	var list=thread.loadList,
 		files=META,
@@ -223,7 +229,9 @@ function _process(thread,fromLoader){
 		len=list.length,
 		mods=C.Env.mods,
 		
-
+		//处理需要使用(use)的模板。
+		//如果模块（或者模块的依赖模块）未添加，加载模块所在的文件
+		//这个过程不考虑 模块间的依赖关系和use顺序
 		p=function(modName){
 			if(!modName){
 				return;
@@ -242,6 +250,7 @@ function _process(thread,fromLoader){
 			var mod=mods[modName],
 				file;
 			
+			//如果需要use的模块还没有add ，则在未加载的文件中查找，如果有 就把文件放入loadList中
 			if(!mod){
 				file=_searchFile(modName);
 				if(file){
@@ -252,27 +261,34 @@ function _process(thread,fromLoader){
 			}
 
 			if(mod&&mod.details.requires){
-				var len=mod.details.requires.length;
+				var requires=mod.details.requires,
+					len=requires.length,
+					i=0;
 			
-				for(var i=0;i<len;i++){
-					p(mod.details.requires[i]);
+				for(;i<len;i++){
+					p(requires[i]);
 				}
 			}
+			
+			//如果module已经add了，先不用处理，在_attach中处理
 				
 		};
 
 		
 
 	for(;i<len;i++){
+		//如果加载的是文件 剔除并push到loadList 会返回-1
 		if(p(list[i])===-1){
 			--i;
 			--len;
 		}
 	}
 	
+	//如果有需要加载的文件 
 	if(loadList.length>0){
 		_load(thread);
 	}
+	//直接处理已经添加的模块
 	else{
 		_attach(thread);
 	}

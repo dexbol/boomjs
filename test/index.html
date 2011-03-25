@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <title>Untitled Document</title>
 
-<script type="text/javascript" src="../cn6-seed.js"></script>
+<script type="text/javascript" src="../seed.js"></script>
 
 
 
@@ -20,7 +20,7 @@ var HH=CN6();
 HH.addFile({
 	
 	'lib.php':{fullpath:'lib.php'},
-	'test1.php':{fullpath:'test1.php',requires:['lib.php'],mods:['t1-1','t1-2']},
+	'test1.php':{fullpath:'test1.php',requires:['test2.php'],mods:['t1-1','t1-2']},
 	'test2.php':{fullpath:'test2.php',requires:['lib.php'],mods:['t2-1','t2-2','t2-3']},
 	'test3.php':{fullpath:'test3.php',requires:['lib.php'],mods:['t3-1','t3-2']},
 	'test4.php':{fullpath:'test4.php',requires:['lib.php'],mods:['t4-1','t4-2']}
@@ -31,7 +31,10 @@ HH.add('fuck',function(C){
 	C.fuck='fuck'
 },{requires:['t2-1']});
 
-HH.use('test1.php','test3.php',function(){console.info('ok')});
+HH.use('test1.php','test3.php',function(){
+	//console.info('ok')
+	alert('ok');
+});
 
 
 //CN6.use('fuck',function(){console.info('ok');});
