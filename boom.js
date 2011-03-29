@@ -28,6 +28,7 @@ var CN6=function(){
 (function(C,win){
 
 //默认文件/模块 信息，可以使用方法 addFile 添加
+//****  key必须是.js 或者 .css 结尾 ****
 var META={
 	/*
 	'lib.php':{fullpath:'lib.php'},
