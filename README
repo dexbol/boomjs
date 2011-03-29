@@ -1,4 +1,4 @@
-Boom 
+![logo](http://i3.6.cn/d3/7f/k524631301385441.png)
 
 一个javascript loader , 参考了YUI3 ， Do.js , KISSY , Headjs 等，并有以下两个特点。
 
@@ -12,8 +12,3 @@ a.js依赖lib.js , b.js依赖lib.js .use('a.js','b.js')  会先加载lib.js ,然
 
 
 
-2010-3-28
-
-update to v2
-firefox 和 opera 对于dom script 可以并发加载 按顺序执行
-在这些浏览器中忽略依赖关系，一并加载。
