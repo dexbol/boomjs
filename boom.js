@@ -28,7 +28,13 @@ var CN6=function(){
 (function(C,win){
 
 //默认文件/模块 信息，可以使用方法 addFile 添加
-//****  key必须是.js 或者 .css 结尾 ****
+
+//<<<<<  key必须是.js 或者 .css 结尾 >>>>>
+
+//<< 这里的依赖关系是模块使用时的依赖关系，而不是文件加载时的依赖关系
+//比如test1.php中的模块使用了lib.php的方法，但test1.php中只是在定义模块但并没有
+//使用，这种情况下是可以同时加载lib.php和test1.php的>>
+
 var META={
 	/*
 	'lib.php':{fullpath:'lib.php'},
@@ -63,7 +69,8 @@ var FILE=doc.getElementsByTagName('script')[0],
 	LOADED=2;
 	
 	
-
+//加载单个js或者css文件 
+//name可以是META信息中的key 也可以是url
 function _loadOne(name,callback){
 	var files=META,
 		src=files[name]?files[name].fullpath:name,
@@ -498,8 +505,12 @@ proto={
 		META[name]=info;
 	},
 	
-	//使用单个或多个模块/文件
+	//加载js或者css文件详见_loadOne
+	load:_loadOne,
+	
+	//使用单个或多个模块
 	//.use('mod1','mod2',callback)
+	//或者加载一个或多个文件！
 	//.use('a.js','b.js',callback)
 	use:function(){		
 		var args=Array.prototype.slice.call(arguments,0),
