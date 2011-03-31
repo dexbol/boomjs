@@ -28,12 +28,13 @@ var CN6=function(){
 (function(C,win){
 
 //默认文件/模块 信息，可以使用方法 addFile 添加
+//****  key必须是.js 或者 .css 结尾 ****
 var META={
 	
 	'lib.php':{fullpath:'lib.php'},
-	'test1.php':{fullpath:'test1.php',requires:['test2.php'],mods:['t1-1','t1-2']},
-	'test2.php':{fullpath:'test2.php',requires:['test3.php'],mods:['t2-1','t2-2','t2-3']},
-	'test3.php':{fullpath:'test3.php',requires:['test4.php'],mods:['t3-1','t3-2']},
+	'test1.php':{fullpath:'test1.php',requires:['lib.php'],mods:['t1-1','t1-2']},
+	'test2.php':{fullpath:'test2.php',requires:['lib.php'],mods:['t2-1','t2-2','t2-3']},
+	'test3.php':{fullpath:'test3.php',requires:['lib.php'],mods:['t3-1','t3-2']},
 	'test4.php':{fullpath:'test4.php',requires:[],mods:['t4-1','t4-2']}
 	
 	};
@@ -54,7 +55,7 @@ var proto,
 					"MozAppearance" in doc.documentElement.style ||
 					window.opera;	
 
-	
+	isAsync=false;
 var FILE=doc.getElementsByTagName('script')[0],
 		
 	LOADING=1,
@@ -165,8 +166,8 @@ function _load(thread){
 
 		while(item){
 			
-			//经过测试firefox里 script.onlad也会按加载顺序触发
-			//所以只在最后一个scrit里加callback即可。
+			//经过测试firefox里 script.onload也会按加载顺序触发
+			//所以只在最后一个script里加callback即可。
 			_loadOne(item,list.length==0?function(){
 				_process(thread,true);
 			}:null);
@@ -261,7 +262,7 @@ function _sortLoad(thread,isAsync){
 		ret.push(ar);
 		processed={};
 	}
-	
+	console.info(ret);
 
 	thread.loadList=ret;
 	return ret;
@@ -269,11 +270,6 @@ function _sortLoad(thread,isAsync){
 
 };
 
-function _allLoad(thread){
-	var thread=typeof thread=='string'?C.Env[thread]:thread,
-		list=thread.loadList;
-	
-}
 
 
 function _process(thread,fromLoader){
@@ -315,7 +311,10 @@ function _process(thread,fromLoader){
 			if(!mod){
 				file=_searchFile(modName);
 				if(file){
-					loadList.push(file);
+					if(!processed[file]){
+						loadList.push(file);
+						processed[file]=true;
+					}
 					waitList.push(modName);
 				}
 				return;
@@ -340,7 +339,7 @@ function _process(thread,fromLoader){
 		}
 	}
 
-
+console.info(loadList);
 	if(loadList.length>0){
 		_load(thread);
 	}

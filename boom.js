@@ -166,8 +166,8 @@ function _load(thread){
 
 		while(item){
 			
-			//经过测试firefox里 script.onlad也会按加载顺序触发
-			//所以只在最后一个scrit里加callback即可。
+			//经过测试firefox里 script.onload也会按加载顺序触发
+			//所以只在最后一个script里加callback即可。
 			_loadOne(item,list.length==0?function(){
 				_process(thread,true);
 			}:null);
@@ -311,7 +311,10 @@ function _process(thread,fromLoader){
 			if(!mod){
 				file=_searchFile(modName);
 				if(file){
-					loadList.push(file);
+					if(!processed[file]){
+						loadList.push(file);
+						processed[file]=true;
+					}
 					waitList.push(modName);
 				}
 				return;

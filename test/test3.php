@@ -8,4 +8,12 @@ var t3='t3';
 
 CN6.add('t3-1',function(C){
 C['t3-1']='fuck';
-},{requires:['t2-1']})
+})
+
+CN6.add('t3-2',function(C){
+C['t3-1']='fuck';
+})
+
+CN6.add('t3-3',function(C){
+C['t3-1']='fuck';
+})
