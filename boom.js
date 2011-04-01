@@ -317,6 +317,15 @@ function _process(thread,fromLoader){
 			
 			if(!mod){
 				file=_searchFile(modName);
+				
+				//防止用户使用addFile方法添加文件是 对文件内添加的模块统计出错，造成死循环
+				//比如:用户添加文件 .addFile({'test.js',{mods:['a','b']}});
+				//但是test.js内只添加了模块a，没有b，这时候就会造成死循环，不断的加载test.js
+				if(scripts[file]&&scripts[file].status==LOADED){
+					throw new Error('文件的模块描述信息与文件内实际添加的模块不一致。INFO : '+modName);
+					return;
+				}
+			
 				if(file){
 					if(!processed[file]){
 						loadList.push(file);
