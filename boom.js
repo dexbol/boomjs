@@ -31,9 +31,9 @@ var CN6=function(){
 
 //<<<<<  key必须是.js 或者 .css 结尾 >>>>>
 
-//<< 这里的依赖关系是模块使用时的依赖关系，而不是文件加载时的依赖关系
+//<<<<< 这里的依赖关系是模块使用时的依赖关系，而不是文件加载时的依赖关系
 //比如test1.php中的模块使用了lib.php的方法，但test1.php中只是在定义模块但并没有
-//使用，这种情况下是可以同时加载lib.php和test1.php的>>
+//使用，这种情况下是可以同时加载lib.php和test1.php的>>>>>>>>
 
 var META={
 	/*
@@ -318,7 +318,7 @@ function _process(thread,fromLoader){
 			if(!mod){
 				file=_searchFile(modName);
 				
-				//防止用户使用addFile方法添加文件是 对文件内添加的模块统计出错，造成死循环
+				//防止用户使用addFile方法添加文件时 对文件内添加的模块统计出错，造成死循环
 				//比如:用户添加文件 .addFile({'test.js',{mods:['a','b']}});
 				//但是test.js内只添加了模块a，没有b，这时候就会造成死循环，不断的加载test.js
 				if(scripts[file]&&scripts[file].status==LOADED){
