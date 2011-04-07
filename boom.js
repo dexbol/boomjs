@@ -117,15 +117,17 @@ function _loadOne(name,callback){
 			script.status=LOADED;
 			
 			var handler=script.handler,
+				fn;
+
+			while(handler.length>0){
 				fn=handler.shift();
-			
-			while(fn){
-				fn(name);
-				fn=handler.shift();
+				if(fn){
+					fn(name);
+				}
 			}
 			
 			
-			script=node.load=node.onreadystatechange=null;
+			node.load=node.onreadystatechange=null;
 		}
 
 	}

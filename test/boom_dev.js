@@ -28,13 +28,19 @@ var CN6=function(){
 (function(C,win){
 
 //默认文件/模块 信息，可以使用方法 addFile 添加
-//****  key必须是.js 或者 .css 结尾 ****
+
+//<<<<<  key必须是.js 或者 .css 结尾 >>>>>
+
+//<<<<< 这里的依赖关系是模块使用时的依赖关系，而不是文件加载时的依赖关系
+//比如test1.php中的模块使用了lib.php的方法，但test1.php中只是在定义模块但并没有
+//使用，这种情况下是可以同时加载lib.php和test1.php的>>>>>>>>
+
 var META={
 	
 	'lib.php':{fullpath:'lib.php'},
-	'test1.php':{fullpath:'test1.php',requires:['lib.php'],mods:['t1-1','t1-2']},
-	'test2.php':{fullpath:'test2.php',requires:['lib.php'],mods:['t2-1','t2-2','t2-3']},
-	'test3.php':{fullpath:'test3.php',requires:['lib.php'],mods:['t3-1','t3-2']},
+	'test1.php':{fullpath:'test1.php',requires:['test2.php'],mods:['t1-1','t1-2']},
+	'test2.php':{fullpath:'test2.php',requires:['test3.php'],mods:['t2-1','t2-2','t2-3']},
+	'test3.php':{fullpath:'test3.php',requires:['test4.php'],mods:['t3-1','t3-2']},
 	'test4.php':{fullpath:'test4.php',requires:[],mods:['t4-1','t4-2']}
 	
 	};
@@ -55,7 +61,7 @@ var proto,
 					"MozAppearance" in doc.documentElement.style ||
 					window.opera;	
 
-	isAsync=false;
+	
 var FILE=doc.getElementsByTagName('script')[0],
 		
 	LOADING=1,
@@ -63,7 +69,8 @@ var FILE=doc.getElementsByTagName('script')[0],
 	LOADED=2;
 	
 	
-
+//加载单个js或者css文件 
+//name可以是META信息中的key 也可以是url
 function _loadOne(name,callback){
 	var files=META,
 		src=files[name]?files[name].fullpath:name,
@@ -118,7 +125,7 @@ function _loadOne(name,callback){
 			}
 			
 			
-			script=node.load=node.onreadystatechange=null;
+			node.load=node.onreadystatechange=null;
 		}
 
 	}
@@ -262,7 +269,7 @@ function _sortLoad(thread,isAsync){
 		ret.push(ar);
 		processed={};
 	}
-	console.info(ret);
+	
 
 	thread.loadList=ret;
 	return ret;
@@ -310,6 +317,15 @@ function _process(thread,fromLoader){
 			
 			if(!mod){
 				file=_searchFile(modName);
+				
+				//防止用户使用addFile方法添加文件时 对文件内添加的模块统计出错，造成死循环
+				//比如:用户添加文件 .addFile({'test.js',{mods:['a','b']}});
+				//但是test.js内只添加了模块a，没有b，这时候就会造成死循环，不断的加载test.js
+				if(scripts[file]&&scripts[file].status==LOADED){
+					throw new Error('文件的模块描述信息与文件内实际添加的模块不一致。INFO : '+modName);
+					return;
+				}
+			
 				if(file){
 					if(!processed[file]){
 						loadList.push(file);
@@ -339,7 +355,7 @@ function _process(thread,fromLoader){
 		}
 	}
 
-console.info(loadList);
+
 	if(loadList.length>0){
 		_load(thread);
 	}
@@ -498,8 +514,12 @@ proto={
 		META[name]=info;
 	},
 	
-	//使用单个或多个模块/文件
+	//加载js或者css文件详见_loadOne
+	load:_loadOne,
+	
+	//使用单个或多个模块
 	//.use('mod1','mod2',callback)
+	//或者加载一个或多个文件！
 	//.use('a.js','b.js',callback)
 	use:function(){		
 		var args=Array.prototype.slice.call(arguments,0),
