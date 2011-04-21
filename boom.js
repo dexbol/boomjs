@@ -72,6 +72,7 @@ var FILE=doc.getElementsByTagName('script')[0],
 //加载单个js或者css文件 
 //name可以是META信息中的key 也可以是url
 function _loadOne(name,callback){
+
 	var files=META,
 		src=files[name]?files[name].fullpath:name,
 		type=src.indexOf('.css')>-1?'css':'js',
@@ -146,14 +147,15 @@ function _loadGroup(ar,callback){
 
 	var i=0,
 		len=ar.length,
+		clone=len,
 		n,
 		
 	cb=function(name){
-		_delItem(ar,name);	
+		clone--;
 
-		if(ar.length==0&&callback){
+		if(clone==0&&callback){
 			callback();
-			cb=ar=callback=null;
+			cb=ar=callback=clone=null;
 		}
 	};
 	
@@ -304,13 +306,15 @@ function _process(thread,fromLoader){
 			
 			processed[modName]=true;
 			
-			//如果use的是文件不是模块
-			if(modName.indexOf('.js')>-1||modName.indexOf('.php')>-1||modName.indexOf('.css')>-1){
-				loadList.push(modName);
+			//是文件不是模块
+			if(_isFile(modName)){
 				
-
-				_delItem(args,modName);
-				return -1;
+				//如果还没加载
+				if(!(scripts[modName]&&scripts[modName].status==LOADED)){
+					loadList.push(modName);
+				}
+				
+				return;
 			}
 			
 
@@ -351,10 +355,7 @@ function _process(thread,fromLoader){
 		
 
 	for(;i<len;i++){
-		if(p(list[i])===-1){
-			--i;
-			--len;
-		}
+		p(list[i]);
 	}
 
 
@@ -390,7 +391,9 @@ function _attach(thread){
 			}
 		}
 		
-		ret.push(n);
+		if(!_isFile(n)){
+			ret.push(n);
+		}
 	};
 		
 	for(;i<len;i++){
@@ -425,7 +428,12 @@ function _searchFile(modName){
 	return false;
 };
 
-
+function _isFile(name){
+	if(name.indexOf('.js')>-1||name.indexOf('.css')>-1||name.indexOf('.php')>-1){
+		return true;
+	}
+	return false;
+}
 
 //很弱的对象检测
 function _isObject(o){
@@ -435,22 +443,6 @@ function _isObject(o){
 	return Object.prototype.toString.call(o)=='[object Object]';
 }
 
-
-
-//删除数组中指定的项目
-function _delItem(ar,item){
-	var i=0,
-		len=ar.length,
-		it;
-		
-	for(;i<len;i++){
-		it=ar[i];
-		if(it==item){
-			ar.splice(i,1);
-			return;
-		}
-	}
-}
 
 
 proto={
@@ -695,4 +687,5 @@ C._init();
 
 
 })(CN6,window);
+
 
