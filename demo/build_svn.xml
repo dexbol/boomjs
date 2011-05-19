@@ -1,0 +1,290 @@
+<!--
+
+
+主要Target : 
+
+ * publish : 发布css js 文件，主要步骤：更新,压缩,改版本号,提交 
+ 
+ * update : svn更新所有csjs文件 和 包含csjs的模板。 <<<<执行以下其他任务前 必须 最好 先执行update>>>> .
+ 
+
+ * updateLoader : 从除seed.source.js 以外所有的js文件中提取CN6.addFile 代码 合并 添加到 seed.source.js中 
+ 
+ * traverse : <<<<会先执行pickCss 和 updateLoader>>>>遍历所有.source.js|css 文件 进行压缩 ， 修改模板和js  里的文件版本号。版本号与svn版本相同
+
+ * commit : 提交已压缩的css js 文件 和 模板
+ 
+ * clean : 删除相关临时文件和文件夹
+
+**** 注意：文件名不能重，即使扩展名不同。比如 base.sourc.css base.source.js 这样会出错。
+
+NOTE:
+
+改进发布流程，支持发布单个文件，或者某一类文件。
+比如只发布css文件：  ant -Df=*.source.css publish
+发布所有文件 ：      不用设置属性，默认为全部
+发布某个文件：       ant -Df=example.source.js publish
+发布多个文件：       ant -Df=a.js,b.js,c.js,d.css publish
+ 
+ 												__ 11-05-18
+
+
+
+-->
+<project name="profile" basedir=".">
+	
+	<dirname property="current.dir" file="${ant.file.uitl}/"/>	
+	<property environment="env" />
+	<property file="build.properties" />	
+	<property name="charset" value="utf-8" />
+	<!--发布后文件存储地址-->
+	<property name="store.dir" value="store" />
+	<!--存储发布文件的文件夹名称-->
+	<property name="store.name" value="store" />
+	<!--种子文件名-->
+	<property name="seed" value="boom.source.js" />
+
+
+	<!--引入svn扩展-->
+    <typedef resource="org/tigris/subversion/svnant/svnantlib.xml" classpath="svnant.jar"/> 
+	<!--引入扩展  用于便利文件夹内所有文件 -->
+   	<taskdef resource="net/sf/antcontrib/antcontrib.properties" >
+	  <classpath>
+	    <pathelement location="${env.ANT_HOME}/lib/ant-contrib-1.0b3.jar"/>
+	  </classpath>
+	</taskdef>
+
+
+
+
+	<!--要处理的文件集合
+	可以通过 ant -Df=value 来设置.
+	默认为素有source文件-->
+	<property name="f" value="*.source.js,*.source.css" />
+	
+
+	<fileset dir="${current.dir}" includes="${f}" id="files">
+		<exclude name="${seed}" />
+	</fileset>
+
+
+
+
+
+
+	<!--遍历每个css或js文件 调用相应target-->
+	<target name="traverse">
+		<!--copy一个临时模板，用于更改版本号-->
+		<copy file="${template}" tofile="${template.temp}" encoding="${charset}" overwrite="true"></copy>	
+		<runtarget target="pickCss" />
+		
+		<!--标记要发布的文件 ， 压缩改方便找到改版本号的地方-->
+		<foreach target="pre-version" param="file" >
+			<path>
+				<fileset refid="files"></fileset>
+			</path>
+			
+			<path path="${current.dir}/${seed}" />
+		</foreach>
+		<!--将 store/example_WHAT_THE_FUCK_32.js 改为 store/example.source.js 方便任务Version 改版本号-->
+		<replaceregexp match="\/(.*)_WHAT_THE_FUCK_\d*\.(css|js)" replace="\/\1.source.\2"  flags="g" file="${template.temp}" encoding="${charset}" />
+		
+		<!--处理文件集 默认为all 可以通过参数设置-->
+		<foreach target="each" param="file" >
+			<path>
+				<fileset refid="files"></fileset>
+			</path>
+		</foreach>
+		
+		<runtarget target="updateLoader" />
+		
+		<!--最后处理seed 文件 , 不管发布哪个文件，seed都是必须处理的-->
+		<foreach target="each" param="file" >
+			<path path="${current.dir}/${seed}" />
+		</foreach>
+		
+		<!--用改完版本的临时模板替换正式模板-->
+		<copy file="${template.temp}" tofile="${template}" encoding="${charset}" overwrite="true"></copy>	
+	</target>
+
+	
+	<!--处理文件集-->
+	<target name="each">
+    	<basename file="${file}" property="file.name" />
+		<dirname file="${file}" property="file.dir" />
+		<!--取得文件扩展名-->
+		<propertyregex property="file.extendName" input="${file.name}" regexp="(.*).source.(js|css)" select="\2"  />
+		<svn>
+		    <status path="${file}" revisionProperty="svn.revision" textStatusProperty="svn.textStatus" />
+		</svn>
+		<echo>${file.name} : ${svn.textStatus} ::: ${svn.revision}</echo>
+		<!--使用不同的工具分别压缩css 和 js 文件-->
+		<if>
+			<equals arg1="${file.extendName}" arg2="js" />
+			<then>
+				<runtarget target="compressJs" />
+			</then>
+		</if>
+		<if>
+			<equals arg1="${file.extendName}" arg2="css" />
+			<then>
+				<runtarget target="compressCss" />
+			</then>
+		</if>
+		<!--改版本号-->
+		<runtarget target="version" />
+		<!--如果处理的是seed文件，执行hide命令，隐藏文件源码地址-->
+		<if>
+			<equals arg1="${file.name}" arg2="${seed}" />
+			<then>
+				<runtarget target="hide" />
+			</then>
+		</if>		
+	</target>
+
+    <!-- 压缩单个文件 CSS 文件	-->
+    <target name="compressCss">
+        <!-- 用 YUICompressor 压缩 CSS -->
+        <apply executable="java" verbose="true" dest="${store.dir}">
+            <fileset dir="${file.dir}" includes="${file.name}"/>
+            <arg line="-jar"/>
+            <arg path="${env.ANT_HOME}/lib/yuicompressor.jar"/>
+            <arg line="--charset ${charset}"/>
+            <srcfile/>
+            <arg line="-o"/>
+            <targetfile/>
+            <mapper type="regexp" from="^(.*)\.source\.(css|js)$" to="\1_MIN_${svn.revision}.\2"/>
+        </apply>
+		<echo message="compress ${file.name}" />
+    </target>
+	
+	<!--压缩单个JS文件-->
+    <target name="compressJs">
+        <!-- 用 Closure Compiler 压缩 JS -->
+        <apply executable="java" verbose="true" dest="${store.dir}">
+            <fileset dir="${file.dir}" includes="${file.name}" />
+            <arg line="-jar" />
+            <arg path="${env.ANT_HOME}/lib/closure-compiler.jar" />
+            <arg line="--charset ${charset}"/>
+            <arg value="--warning_level" />
+            <arg value="QUIET" />
+			<arg value="--define" />
+			<arg value="_BOOM_DEBUG_=false" />
+            <arg value="--js" />
+            <srcfile/>
+            <arg value="--js_output_file" />
+            <targetfile/>
+            <mapper type="regexp" from="^(.*)\.source\.(css|js)$" to="\1_MIN_${svn.revision}.\2"/>
+        </apply>
+		<echo message="compress ${file.name}" />		
+    </target>
+	
+	<target name="version">
+		<echo>${file.name}  :::  ${svn.revision}</echo>
+		<propertyregex property="file.mark" input="${file.name}" regexp="(.*).source.(js|css)" select="\1"  />
+		<propertyregex property="file.extendName" input="${file.name}" regexp="(.*).source.(js|css)" select="\2"  />
+		<replace token="${store.name}/${file.name}" value="${store.name}/${file.mark}_MIN_${svn.revision}.${file.extendName}" file="${template.temp}" encoding="${charset}"   />
+		<replace token="${store.name}/${file.name}" value="${store.name}/${file.mark}_MIN_${svn.revision}.${file.extendName}" file="${file}" encoding="${charset}"   />
+	</target>
+	
+	<target name="pre-version">
+    	<basename file="${file}" property="file.name" />
+		<dirname file="${file}" property="file.dir" />
+		<propertyregex property="file.mark" input="${file.name}" regexp="(.*).source.(js|css)" select="\1"  />
+		<propertyregex property="file.extendName" input="${file.name}" regexp="(.*).source.(js|css)" select="\2"  />
+		<echo>${file.mark}</echo>
+		<replace token="${store.name}/${file.mark}_MIN_" value="${store.name}/${file.mark}_WHAT_THE_FUCK_" file="${template.temp}" encoding="${charset}"   />
+		<replaceregexp match="\/(.*)_MIN_\d*\.(css|js)" replace="\/\1.source.\2"  flags="g" file="${file}" encoding="${charset}" />
+	</target>
+	
+	<!--去掉源码地址-->
+	<target name="hide">
+		<propertyregex  input="${seed}" property="seed.name" regexp="^(.+)\.source\.(\w+)" select="\1" />
+		
+		<replaceregexp match="\/csjs[\w\/]*\.source.js" replace=" " file="${store.dir}/${seed.name}_MIN_${svn.revision}.js" flags="g" encoding="${charset}" />
+		
+	</target>
+
+
+	
+	<!--svn update -->
+	<target name="update">
+		<svn username="${svn.username}" password="${svn.password}">
+			<update dir="." />
+			<update file="${template}" />	
+			<update file="${globalCss}" />
+		</svn>
+	</target>
+
+
+
+
+
+
+	<!--更新javascript loader 数据 即 boom（${seed}） 里的META对象-->
+	<target name="updateLoader">
+		<copy todir="${current.dir}/temp" encoding="${charset}">
+			<fileset dir="${current.dir}/" includes="*.js" excludes="${seed}" />
+            <mapper type="regexp" from="^(.*)\.source\.(css|js)$" to="\1\.temp\.\2"/>
+		</copy>
+		<foreach target="getJsLoaderDate" param="file">
+			<path>
+				<fileset dir="${current.dir}/temp" includes="*.temp.js" />
+			</path>
+		</foreach>
+		<concat destfile="${current.dir}/temp/loader_file_data.js" encoding="${charset}">
+			<path>
+				<fileset dir="${current.dir}/temp" includes="*.temp.js"  />
+			</path>			
+		</concat>
+		<copy file="${current.dir}/${seed}" tofile="${current.dir}/temp/${seed}" encoding="${charset}" />
+		<replaceregexp match="\/\*BOOM_ADD_FILE\*\/[\s\S]*$" replace="/*BOOM_ADD_FILE*/" encoding="${charset}" file="${current.dir}/temp/${seed}" />
+		<concat destfile="${current.dir}/${seed}" encoding="${charset}">
+			<path path="${current.dir}/temp/${seed}" />
+			<path path="${current.dir}/temp/loader_file_data.js" />
+		</concat>
+	</target>
+	
+	<target name="getJsLoaderDate">
+		<replaceregexp match="^[\s\S]*\/\*BOOM_ADD_FILE([\s\S]*)BOOM_ADD_FILE\*\/[\s\S]*$" replace="\1" file="${file}" encoding="${charset}" />
+		<echo>${file}</echo>
+	</target>
+
+
+
+
+
+
+	<target name="commit">
+		<svn username="${svn.username}" password="${svn.password}">
+			<commit recurse="false" file="${template}" message="by ant" />
+		</svn>	
+		<svn username="${svn.username}" password="${svn.password}">
+			<add>
+				<fileset dir="${store.dir}" includes="*.css,*.js"></fileset>
+			</add>
+			<commit recurse="false"  message="by ant" >
+				<fileset dir="${store.dir}" includes="*.css,*.js"></fileset>
+			</commit>
+		</svn>			
+	</target>
+
+
+
+
+
+
+	<target name="clean">
+		<delete dir="${current.dir}/temp" />
+		<delete file="${template.temp}" />
+	</target>
+
+
+
+
+
+
+
+	<target name="publish" depends="update,traverse,commit,clean"  />
+	
+</project>
