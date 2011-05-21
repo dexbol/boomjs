@@ -692,4 +692,26 @@ C._init();
 /**@define {boolean} */
 var _BOOM_DEBUG_=true;
 
+
+/**
+ * NOTE:
+ * 
+ * 发现一个问题 ， 如果加载非模块化的js (js 里不是用.add申明模块，比如jquery 插件) 在firefox这种
+ * 可以并发加载按顺序的浏览器下可能会出错。
+ * 出错的情况如下：a.js,b.js 两个js互不依赖，如果为了更快的加载a.js 我们会在HTML里靠前的位置先 .load('a.js') ,然后再 .use('b.js','a.js',callback)
+ * 由于上诉浏览器的加载机制是只给加载列队的最后一个请求的script绑定回调事件，在上面的例子里，只给a.js加了回调，而且a.js又是提前加载了，这样在
+ * a.js加载成功后会理解调用callback而不管b.js是否加载成功，这样就会报错。
+ * 可以改进加载机制避免这种问题，但值得吗？ 是否要定一个必须使用.add 申明的规范？  -- 11-05-21
+ * 
+ * 是否要加上加载失败的提示。参考：http://lifesinger.org/lab/2011/load-js-css/
+ * 
+ * 
+ * 
+ * 
+ * 
+ */
+
+
+
+
 /*BOOM_ADD_FILE*/
