@@ -113,7 +113,7 @@ function _loadOne(name,callback){
 	node.onload=node.onreadystatechange=function(){
 		if(!this.readyState || this.readyState=='loaded' || this.readyState=='complete'){
 			
-			
+			console.info(this.src +' loaded.')
 			//ie9 由于下面script=null ,会倒是报错。
 			script.status=LOADED;
 			
@@ -155,7 +155,7 @@ function _loadGroup(ar,callback){
 
 		if(flag==0&&callback){
 			callback();
-			cb=ar=callback=flag=null;
+			cb=ar=callback=clone=null;
 		}
 	};
 	
@@ -170,8 +170,23 @@ function _loadGroup(ar,callback){
 
 function _load(thread){
 	
-	//可以确保执行顺序而且并发加载的浏览器
+	//可以确保执行顺序的浏览器
 	if(isAsync){
+		/*
+		var list=_sortLoad(thread,true),
+			item=list.shift();
+
+		while(item){
+			
+			//经过测试firefox里 script.onload也会按加载顺序触发
+			//所以只在最后一个script里加callback即可。
+			_loadOne(item,list.length==0?function(){
+				_process(thread,true);
+			}:null);
+			item=list.shift();			
+		}
+		*/
+		
 		var list=_sortLoad(thread , true),
 			len=list.length,
 			flag=len,
@@ -207,7 +222,7 @@ function _load(thread){
 
 	};
 
-	//console.info(list);
+	console.info(list);
 	_loadGroup(list.shift(),callback);
 };
 
@@ -305,7 +320,6 @@ function _process(thread,fromLoader){
 				return;
 			}		
 			
-
 			if(processed[modName]){
 				return;
 			}
@@ -366,6 +380,7 @@ function _process(thread,fromLoader){
 
 
 	if(loadList.length>0){
+
 		_load(thread);
 	}
 	else{
@@ -528,7 +543,7 @@ proto={
 			callback;
 
 		callback=(typeof args[len-1]=='function')?args.pop():null;
-	
+
 		C.Env[threadId]={
 			id:threadId,
 			callback:callback,
@@ -698,26 +713,40 @@ C._init();
 /**@define {boolean} */
 var _BOOM_DEBUG_=true;
 
-
-/**
- * NOTE:
- * 
- * #Bug 1#发现一个问题 ， 如果加载非模块化的js (js 里不是用.add申明模块，比如jquery 插件) 在firefox这种
- * 可以并发加载按顺序的浏览器下可能会出错。
- * 出错的情况如下：a.js,b.js 两个js互不依赖，如果为了更快的加载a.js 我们会在HTML里靠前的位置先 .load('a.js') ,然后再 .use('b.js','a.js',callback)
- * 由于上诉浏览器的加载机制是只给加载列队的最后一个请求的script绑定回调事件，在上面的例子里，只给a.js加了回调，而且a.js又是提前加载了，这样在
- * a.js加载成功后会理解调用callback而不管b.js是否加载成功，这样就会报错。
- * 可以改进加载机制避免这种问题，但值得吗？ 是否要定一个必须使用.add 申明的规范？  -- 11-05-21
- * 
- * 是否要加上加载失败的提示。参考：http://lifesinger.org/lab/2011/load-js-css/
- * 
- * 改进了isAsync浏览器的加载方式，解决了Bug 1  -- 11-5-25
- * 
- * 
- * 
- */
-
-
-
-
 /*BOOM_ADD_FILE*/
+
+
+CN6.addFile('base.js',{
+	fullpath:_BOOM_DEBUG_?'base.source.js':'store/base_MIN_201105191833.js',
+	mods:['util']
+});
+
+//load base js as soon as possible
+CN6.load('base.js');
+
+
+
+
+CN6.addFile('mA_mB_mC.js',{
+	fullpath:_BOOM_DEBUG_?'mA_mB_mC.source.js':'store/mA_mB_mC_MIN_201105191833.js',
+	mods:['mA','mB','mC']
+})
+
+
+
+
+
+CN6.addFile('mD.js',{
+	fullpath:_BOOM_DEBUG_?'mD.source.js':'store/mD_MIN_201105191833.js',
+	mods:['mD']
+})
+
+
+
+
+CN6.addFile('mE.js',{
+	fullpath:_BOOM_DEBUG_?'mE.source.js':'store/mE_MIN_201105191833.js',
+	mods:['mE']
+})
+
+
