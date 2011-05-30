@@ -11,7 +11,7 @@
 
 
 CN6.addFile('base.js',{
-	fullpath:_BOOM_DEBUG_?'base.source.js':'store/base_MIN_201105191833.js',
+	fullpath:_BOOM_DEBUG_?'base.source.js':'store/base_MIN_201105301712.js',
 	mods:['util']
 });
 

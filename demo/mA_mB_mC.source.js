@@ -12,7 +12,7 @@
 
 
 CN6.addFile('mA_mB_mC.js',{
-	fullpath:_BOOM_DEBUG_?'mA_mB_mC.source.js':'store/mA_mB_mC_MIN_201105191833.js',
+	fullpath:_BOOM_DEBUG_?'mA_mB_mC.source.js':'store/mA_mB_mC_MIN_201105301712.js',
 	mods:['mA','mB','mC']
 })
 

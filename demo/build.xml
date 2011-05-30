@@ -104,6 +104,7 @@ NOTE:
 	<target name="each">
     	<basename file="${file}" property="file.name" />
 		<dirname file="${file}" property="file.dir" />
+		<echo>Process  =>=>=>=>=>=>=>  ${file.name}</echo>
 		<!--取得文件扩展名-->
 		<propertyregex property="file.extendName" input="${file.name}" regexp="(.*).source.(js|css)" select="\2"  />
 
@@ -144,7 +145,6 @@ NOTE:
             <targetfile/>
             <mapper type="regexp" from="^(.*)\.source\.(css|js)$" to="\1_MIN_${DSTAMP}${TSTAMP}.\2"/>
         </apply>
-		<echo message="compress ${file.name}" />
     </target>
 	
 	<!--压缩单个JS文件-->
@@ -165,7 +165,6 @@ NOTE:
             <targetfile/>
             <mapper type="regexp" from="^(.*)\.source\.(css|js)$" to="\1_MIN_${DSTAMP}${TSTAMP}.\2"/>
         </apply>
-		<echo message="compress ${file.name}" />		
     </target>
 	
 	<target name="version">
@@ -180,7 +179,6 @@ NOTE:
 		<dirname file="${file}" property="file.dir" />
 		<propertyregex property="file.mark" input="${file.name}" regexp="(.*).source.(js|css)" select="\1"  />
 		<propertyregex property="file.extendName" input="${file.name}" regexp="(.*).source.(js|css)" select="\2"  />
-		<echo>${file.mark}</echo>
 		<replace token="${store.name}/${file.mark}_MIN_" value="${store.name}/${file.mark}_WHAT_THE_FUCK_" file="${template.temp}" encoding="${charset}"   />
 		<replaceregexp match="\/(.*)_MIN_\d*\.(css|js)" replace="\/\1.source.\2"  flags="g" file="${file}" encoding="${charset}" />
 	</target>
@@ -227,7 +225,6 @@ NOTE:
 	
 	<target name="getJsLoaderDate">
 		<replaceregexp match="^[\s\S]*\/\*BOOM_ADD_FILE([\s\S]*)BOOM_ADD_FILE\*\/[\s\S]*$" replace="\1" file="${file}" encoding="${charset}" />
-		<echo>${file}</echo>
 	</target>
 
 

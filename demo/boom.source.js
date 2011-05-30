@@ -695,7 +695,7 @@ var _BOOM_DEBUG_=false;
 
 
 CN6.addFile('base.js',{
-	fullpath:_BOOM_DEBUG_?'base.source.js':'store/base_MIN_201105191833.js',
+	fullpath:_BOOM_DEBUG_?'base.source.js':'store/base_MIN_201105301712.js',
 	mods:['util']
 });
 
@@ -706,7 +706,7 @@ CN6.load('base.js');
 
 
 CN6.addFile('mA_mB_mC.js',{
-	fullpath:_BOOM_DEBUG_?'mA_mB_mC.source.js':'store/mA_mB_mC_MIN_201105191833.js',
+	fullpath:_BOOM_DEBUG_?'mA_mB_mC.source.js':'store/mA_mB_mC_MIN_201105301712.js',
 	mods:['mA','mB','mC']
 })
 
@@ -715,7 +715,7 @@ CN6.addFile('mA_mB_mC.js',{
 
 
 CN6.addFile('mD.js',{
-	fullpath:_BOOM_DEBUG_?'mD.source.js':'store/mD_MIN_201105191833.js',
+	fullpath:_BOOM_DEBUG_?'mD.source.js':'store/mD_MIN_201105301712.js',
 	mods:['mD']
 })
 
@@ -723,7 +723,7 @@ CN6.addFile('mD.js',{
 
 
 CN6.addFile('mE.js',{
-	fullpath:_BOOM_DEBUG_?'mE.source.js':'store/mE_MIN_201105191833.js',
+	fullpath:_BOOM_DEBUG_?'mE.source.js':'store/mE_MIN_201105301712.js',
 	mods:['mE']
 })
 

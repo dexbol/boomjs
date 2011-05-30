@@ -11,7 +11,7 @@
 
 
 CN6.addFile('mD.js',{
-	fullpath:_BOOM_DEBUG_?'mD.source.js':'store/mD_MIN_201105191833.js',
+	fullpath:_BOOM_DEBUG_?'mD.source.js':'store/mD_MIN_201105301712.js',
 	mods:['mD']
 })
 
