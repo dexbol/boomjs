@@ -29,12 +29,15 @@ pre{padding:10px;border:1px dashed #999999;}
 
 <script>
 
-CN6.use('mE.js','util',function(C){
-console.info(C.mE);
+CN6.add('a',function(C){
+	C.a='a'
+},{requires:['b']});
+CN6.add('b',function(C){
+	C.a='b'
+},{requires:['a']});
 
-setTimeout(function(){
-console.info(C.mE);
-},8000);
+CN6.use('a',function(C){
+	console.info('ok');
 })
 </script>>
 

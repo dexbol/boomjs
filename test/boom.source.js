@@ -399,9 +399,15 @@ function _attach(thread){
 		ret=[],
 		i=0,
 		len=ar.length,
-		mods=C.Env.mods;
+		mods=C.Env.mods,
+		pd={};
 				
 	p=function(n){
+		if(pd[n]){
+			return;
+		}
+		pd[n]=true;
+		
 		var mod=mods[n];	
 
 		if(mod&&mod.details.requires){
@@ -564,7 +570,7 @@ proto={
 		var len=ar.length,
 			mods=C.Env.mods,
 			attached=this.Env._attached;
-		
+		console.info(ar);
 		for(var i=0;i<len;i++){
 			if(!attached[ar[i]]){
 				mods[ar[i]].fn(this);

@@ -384,9 +384,15 @@ function _attach(thread){
 		ret=[],
 		i=0,
 		len=ar.length,
-		mods=C.Env.mods;
+		mods=C.Env.mods,
+		pd={};
 				
 	p=function(n){
+		if(pd[n]){
+			return;
+		}
+		pd[n]=true;
+		
 		var mod=mods[n];	
 
 		if(mod&&mod.details.requires){
@@ -415,7 +421,6 @@ function _attach(thread){
 	C.Env[thread.id]=null;
 	
 };
-
 
 
 function _searchFile(modName){
