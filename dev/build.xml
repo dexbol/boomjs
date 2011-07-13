@@ -1,0 +1,43 @@
+
+<project name="profile" basedir="." default="compress">
+	
+	<dirname property="current.dir" file="${ant.file.uitl}/"/>
+	<property environment="env" />
+	<property name="charset" value="utf-8" />
+
+    <target name="compress">
+        <!-- 用 Closure Compiler 压缩 JS -->
+        <apply executable="java" verbose="true" dest="${current.dir}">
+            <fileset dir="${current.dir}" includes="boom.js" />
+            <arg line="-jar" />
+            <arg path="${env.ANT_HOME}/lib/closure-compiler.jar" />
+            <arg line="--charset ${charset}"/>
+            <arg value="--warning_level" />
+            <arg value="QUIET" />
+			<arg value="--define" />
+			<arg value="_BOOM_DEBUG_=false" />
+            <arg value="--js" />
+            <srcfile/>
+            <arg value="--js_output_file" />
+            <targetfile/>
+            <mapper type="regexp" from="^(.*)\.(css|js)$" to="\1-min.\2"/>
+        </apply>
+        
+          <apply executable="java" verbose="true" dest="${current.dir}">
+            <fileset dir="${current.dir}" includes="boom1.js" />
+            <arg line="-jar" />
+            <arg path="${env.ANT_HOME}/lib/closure-compiler.jar" />
+            <arg line="--charset ${charset}"/>
+            <arg value="--warning_level" />
+            <arg value="QUIET" />
+			<arg value="--define" />
+			<arg value="_BOOM_DEBUG_=false" />
+            <arg value="--js" />
+            <srcfile/>
+            <arg value="--js_output_file" />
+            <targetfile/>
+            <mapper type="regexp" from="^(.*)\.(css|js)$" to="\1-min.\2"/>
+        </apply>      
+    </target>
+	
+</project>
