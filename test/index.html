@@ -1,46 +1,23 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="uft-8">
-<title>BOOM Deom</title>
-<script src="boom.source.js"></script>
-<script>
-function output(msg){
-	var p=document.createElement('p');
-	var area=document.getElementById('console');
-	p.appendChild(document.createTextNode(msg));
-	area.appendChild(p);
-}
-</script>
-<style>
-html,body,div,p,h1,h2,h3,h4,blockquote,pre,form,fieldset,ol,ul,li,dl,dd,dt,table,tbody,thead,tfoot,tr,th,td{margin:0;padding:0;}
-body{padding:10px 320px 0 0;font:12px/1.5  Tahoma,Simsun,Arial,Helvetica,sans-serif;color:#000000;background:transparent;}
-
-.console{width:300px;height:100%;padding:5px 10px;background:#1A1A1A;color:#944F23;color:#FFFFFF;overflow:auto;position:fixed;right:0;top:0;}
-.console p{padding:8px 10px;border-bottom:1px dashed #666666;}
-
-pre{padding:10px;border:1px dashed #999999;}
-
-</style>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>Boom Unit Test</title>
+<link href="qunit-git.css"  type="text/css" rel="stylesheet" />
+<script type="text/javascript" src="jquery-latest.js"></script>
+<script type="text/javascript" src="qunit-git.js"></script>
 </head>
 <body>
-<div class="console" id="console">
-</div>
+<h1 id="qunit-header">Boom Test</h1>
+<h2 id="qunit-banner"></h2>
+<div id="qunit-testrunner-toolbar"></div>
+<h2 id="qunit-userAgent"></h2>
+<ol id="qunit-tests"></ol>
+<div id="qunit-fixture">test markup, will be hidden</div>
 
-<script>
+<script type="text/javascript" src="../dev/boom.source.js"></script>
+<script type="text/javascript">
 
-CN6.add('a',function(C){
-	C.a='a'
-},{requires:['b']});
-CN6.add('b',function(C){
-	C.a='b'
-},{requires:['a']});
-
-CN6.use('a',function(C){
-	console.info('ok');
-})
-</script>>
-
-
+</script>
 </body>
 </html>
