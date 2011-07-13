@@ -1,41 +1,24 @@
 /**@license
- * 
- * Boom , a javascript loader and manager
+ * Boom v1.0 , a javascript loader and manager
  * 
  * MIT License
  * 
- * https://github.com/dexbol/boom
- *
+ * http://dexbol.github.com/boom/
+ * 
  */
 
 
+(function(win,doc){
 
-
-if(typeof CN6!='undefined'){
-	var _CN6=CN6;
-}
-
-var CN6=function(){
-	var C=this;
-	if(! ( C instanceof CN6)){
-		return new CN6();
-	}
+var LOADING=0,
+	LOADED=1;
 	
-	C._init();
-};
-
-
-(function(C,win){
-
-//默认文件/模块 信息，可以使用方法 addFile 添加
-
-//<<<<<  key必须是.js 或者 .css 结尾 >>>>>
-
-//<<<<< 这里的依赖关系是模块使用时的依赖关系，而不是文件加载时的依赖关系
-//比如test1.php中的模块使用了lib.php的方法，但test1.php中只是在定义模块但并没有
-//使用，这种情况下是可以同时加载lib.php和test1.php的>>>>>>>>
-
-var META={
+	//存贮加载文件的状态 handler等
+var _files_={},
+	_config_={},
+	_thread_={},
+	//通过.addFile添加的meta文件
+	_meta_={
 	/*
 	'lib.php':{fullpath:'lib.php'},
 	'test1.php':{fullpath:'test1.php',requires:['test2.php'],mods:['t1-1','t1-2']},
@@ -43,15 +26,19 @@ var META={
 	'test3.php':{fullpath:'test3.php',requires:['test4.php'],mods:['t3-1','t3-2']},
 	'test4.php':{fullpath:'test4.php',requires:[],mods:['t4-1','t4-2']}
 	*/
-	};
-
-
+	},
+	//通过.add 添加的模块
+	_mods_={};
+	
 var proto,
+
+	//the boom.js , tech from Do.js v2 
+	jsSelf=(function(){
+		var scripts=doc.getElementsByTagName('script');
+		return scripts[scripts.length-1];
+	})(),
 	
-	//包装要加载的script，保存加载状态的信息等
-	scripts={},
-	
-	doc=document,
+	symbol=jsSelf.getAttribute('data-boom-symbol')||'Boom',
 	
 	//firefox 和 opera 使用script dom 加载js 可以实现并发加载 按顺序执行
 	//所以这两个浏览器不用一个一个的按顺序添加scriot dom，不管依赖关系 一律并发下载
@@ -59,36 +46,184 @@ var proto,
 	//tech from headjs
 	isAsync=doc.createElement("script").async === true ||
 					"MozAppearance" in doc.documentElement.style ||
-					window.opera;	
+					window.opera;
+	isAsync=false;
 
-	
-var FILE=doc.getElementsByTagName('script')[0],
+
+//很弱的对象检测
+function isObject(o){
+	if(!o){
+		return false;
+	}
+	return Object.prototype.toString.call(o)=='[object Object]';
+}
+
+function each(ar,fn){
+	//if(Array.prototype.forEach){
+	//	return ar.forEach(fn);
+	//}
+	var len=ar.length,
+		i=0;
 		
-	LOADING=1,
-	
-	LOADED=2;
-	
-	
-//加载单个js或者css文件 
-//name可以是META信息中的key 也可以是url
-function _loadOne(name,callback){
+	for(;i<len;i++){
+		fn(ar[i],i);
+	}
+}
 
-	var files=META,
-		src=files[name]?files[name].fullpath:name,
+//基本的对象操作 from YUI 3
+//当使用类似jquery这种非OO的js框架时 ， 可以提供最基本的OOP
+function mix(r, s, ov, wl, mode, merge) {
+    if (!s||!r) {
+        return r || this;
+    }
+
+    if (mode) {
+        switch (mode) {
+            case 1: // proto to proto
+                return mix(r.prototype, s.prototype, ov, wl, 0, merge);
+            case 2: // object to object and proto to proto
+                mix(r.prototype, s.prototype, ov, wl, 0, merge);
+                break; // pass through 
+            case 3: // proto to static
+                return mix(r, s.prototype, ov, wl, 0, merge);
+            case 4: // static to proto
+                return mix(r.prototype, s, ov, wl, 0, merge);
+            default:  // object to object is what happens below
+        }
+    }
+
+    // Maybe don't even need this wl && wl.length check anymore??
+    var i, l, p;
+
+    if (wl && wl.length) {
+        for (i = 0, l = wl.length; i < l; ++i) {
+            p = wl[i];
+            if (s.hasOwnProperty(p)) {
+                if (merge && isObject(r[p])) {
+                    mix(r[p], s[p]);
+                } else if (ov || !(p in r)) {
+                    r[p] = s[p];
+                }            
+            }
+        }
+    } else {
+        for (i in s) { 
+            // if (s.hasOwnProperty(i) && !(i in FROZEN)) {
+            if (s.hasOwnProperty(i)) {
+                // check white list if it was supplied
+                // if the receiver has this property, it is an object,
+                // and merge is specified, merge the two objects.
+                if (merge && isObject(r[i])) {
+                    mix(r[i], s[i], ov, wl, 0, true); // recursive
+                // otherwise apply the property only if overwrite
+                // is specified or the receiver doesn't have one.
+                } else if (ov || !(i in r)) {
+                    r[i] = s[i];
+                }
+                // if merge is specified and the receiver is an array,
+                // append the array item
+                // } else if (arr) {
+                    // r.push(s[i]);
+                // }
+            }
+        }
+    
+    }
+    return r;
+}
+
+function merge() {
+    var a = arguments, o = {}, i, l = a.length;
+    for (i=0; i<l; i=i+1) {
+        mix(o, a[i], true,0,true);
+    }
+    return o;
+}
+
+function extend(r,s,px,sx){
+    if (!s || !r){
+		return r;
+	} 
+	
+    var OP = Object.prototype,
+        O = function (o) {
+                function F() {}
+                F.prototype = o;
+                return new F();
+            },
+        sp = s.prototype,
+        rp = O(sp);
+
+    r.prototype = rp;
+    rp.constructor = r;
+    r.superclass = sp;
+
+    // assign constructor property
+    if (s !== Object && sp.constructor === OP.constructor) {
+        sp.constructor = s;
+    }
+
+    // add prototype overrides
+    if (px) {
+        mix(rp, px,true);
+    }
+
+    // add object overrides
+    if (sx) {
+        mix(r, sx,true);
+    }
+
+    return r;		
+}
+
+
+function isFile(name){
+	if(name.indexOf('.js')>-1||name.indexOf('.css')>-1||name.indexOf('.php')>-1){
+		return true;
+	}
+	return false;
+}
+
+//找到模块所在的meta文件
+function searchFile(modName){
+	var meta=_meta_,
+		f,
+		mods,
+		i,
+		len;
+		
+	for(f in meta){
+		if(meta.hasOwnProperty(f)){
+			mods=meta[f].mods||[];
+			len=mods.length;
+			for(i=0;i<len;i++){
+				if(mods[i]==modName){
+					return f;
+				}
+			}
+		}
+	}
+	
+	return false;
+};
+
+function loadFile(name,callback){
+	var metaFile=_meta_,
+		src=metaFile[name]?metaFile[name].fullpath:name,
 		type=src.indexOf('.css')>-1?'css':'js',
-		script=scripts[name];
+		script=_files_[name];
 	
 	if(type=='css'){
 		var l=document.createElement('link');
 		l.setAttribute('href',src);
 		l.setAttribute('type','text/css');
 		l.setAttribute('rel','stylesheet');
-		FILE.parentNode.insertBefore(l,FILE);
+		jsSelf.parentNode.insertBefore(l,jsSelf);
 		return;
 	}
 	
 	if(!script){
-		script=scripts[name]={handler:[callback?callback:null]};
+		script=_files_[name]={handler:[callback?callback:null]};
 	}
 	
 
@@ -114,7 +249,7 @@ function _loadOne(name,callback){
 		if(!this.readyState || this.readyState=='loaded' || this.readyState=='complete'){
 			
 			
-			//ie9 由于下面script=null ,会倒是报错。
+			//ie9 由于下面script=null ,会导致报错。
 			script.status=LOADED;
 			
 			var handler=script.handler,
@@ -133,258 +268,219 @@ function _loadOne(name,callback){
 
 	}
 
-	FILE.parentNode.insertBefore(node,FILE);
-	script.status=LOADING;
-};
+	jsSelf.parentNode.insertBefore(node,jsSelf);
+	script.status=LOADING;	
+}
 
-
-
-function _loadGroup(ar,callback){
-
-	if(!ar){
-		return;
-	}
-
-	var i=0,
-		len=ar.length,
-		flag=len,
-		n,
-		
-	cb=function(name){
-		flag--;
-
-		if(flag==0&&callback){
-			callback();
-			cb=ar=callback=flag=null;
-		}
-	};
-	
-	for(;i<len;i++){
-		n=ar[i];
-		_loadOne(n,cb);		
-	}
-
-};
-
-
-
-function _load(thread){
-	
-	//可以确保执行顺序而且并发加载的浏览器
-	if(isAsync){
-		var list=_sortLoad(thread , true),
-			len=list.length,
-			flag=len,
-			i=0,
-			
-			callback=function(){
-				--flag;
-				
-				if(flag==0){
-					thread.loadList=[];
-					callback=list=null;
-					_process(thread,true);
-				}
-			}
-			
-		for(;i<len;i++){
-			_loadOne(list[i],callback);
-		}
-		
-		return;
-	}
-	
-	//其他浏览器
-	var list=_sortLoad(thread),	
-
-	callback=function(){
-		if(list.length==0){
-			_process(thread,true);
-			thread=callback=list=null;
-			return;
-		}
-		_loadGroup(list.shift(),callback);
-
-	};
-
-	//console.info(list);
-	_loadGroup(list.shift(),callback);
-};
-
-
-//这个函数很难写注释啊
-function _sortLoad(thread,isAsync){
-	var list=thread.loadList,
-		files=META,
-		rList=[],
-		rListItem=[],
-		i=0,
-		len=list.length,
-		processed={},
-		maxLen=0,
-		
-		lineRet=[],
-		
-	p=function(n){
-		var f=files[n],
-			requires=f.requires;
-		
-		if(processed[n]==true){
-			return;
-		}
-		
-		if(requires){
-			var len=requires.length,i=0;
-			for(;i<len;i++){
-				p(requires[i]);
-			}
-		}
-
-		rListItem.push(n);
-		lineRet.push(n);
-		processed[n]=true;
-	};
-	
-
-	for(;i<len;i++){
-		p(list[i]);
-		rList.push(rListItem);
-		maxLen=Math.max(maxLen,rListItem.length);
-		rListItem=[];
-		processed={};
-	}
-	
-	if(isAsync){
-
-		thread.loadList=lineRet;
-		return lineRet;
-	}
-	
-		
-	var ret=[],
-		ar,
-		arin;
-	
-	for(i=0;i<maxLen;i++){		
-		ar=[];
-
-		for(var j=0;j<len;j++){
-			arin=rList[j][i];
-			if(arin && !processed[arin]){
-				ar.push(arin);
-				processed[arin]=true;
-			}
-		}
-
-		ret.push(ar);
-		processed={};
-	}
-	
-
-	thread.loadList=ret;
-	return ret;
-	
-
-};
-
-
-
-function _process(thread,fromLoader){
-	var loadList=thread.loadList,
-		waitList=thread.waitList,
-		args=thread.args,
-		list=fromLoader?waitList:args,
-		i=0,
-		len=list.length,
-		mods=C.Env.mods,
+//一个thread可能会多次调用此函数
+//因为包含有某mod的meta文件加载前我们无法知道此mod是否需要其他mod，
+//参数fromLoader 为真时 说明不是第一调用
+//来处理首次调用未能处理的mod (unfoundMod)
+function processThread(thread,fromLoader){
+	var loadList=thread.f,
+		unfoundMod=thread.unfound,
+		list=fromLoader?unfoundMod:thread.mods,
+		mods=_mods_,
 		processed={},
 		
 
 		p=function(modName){
-			if(!modName){
-				return;
-			}		
-			
-
-			if(processed[modName]){
+			if(!modName || processed[modName]){
 				return;
 			}
 			
 			processed[modName]=true;
 			
-			//是文件不是模块
-			if(_isFile(modName)){
-				
+			//要加载的模块是一个meta文件，直接放入加载列表并返回
+			if(isFile(modName)){
 				//如果还没加载
-				if(!(scripts[modName]&&scripts[modName].status==LOADED)){
+				if(!(_files_[modName]&&_files_[modName].status==LOADED)){
 					loadList.push(modName);
 				}
-				
 				return;
 			}
 			
-
 			var mod=mods[modName],
 				file;
 			
 			if(!mod){
-				file=_searchFile(modName);
+				file=searchFile(modName);
 				
-				//防止用户使用addFile方法添加文件时 对文件内添加的模块统计出错，造成死循环
+				//防止meta对象中mods信息与文件中实际添加模块的信息不一致
 				//比如:用户添加文件 .addFile({'test.js',{mods:['a','b']}});
 				//但是test.js内只添加了模块a，没有b，这时候就会造成死循环，不断的加载test.js
-				if(scripts[file]&&scripts[file].status==LOADED){
-					throw new Error('文件的模块描述信息与文件内实际添加的模块不一致。INFO : '+modName);
+				if(_files_[file]&&_files_[file].status==LOADED){
+					throw new Error('Can\'t found the module : '+modName);
 					return;
 				}
 			
-				if(file){
-					if(!processed[file]){
-						loadList.push(file);
-						processed[file]=true;
-					}
-					waitList.push(modName);
+				if(file && !processed[file]){
+					loadList.push(file);
+					processed[file]=true;
+					unfoundMod.push(modName);
 				}
 				return;
 			}
 
 			if(mod&&mod.details.requires){
-				var len=mod.details.requires.length;
+				var len=mod.details.requires.length,
+					i=0;
 			
-				for(var i=0;i<len;i++){
+				for(;i<len;i++){
 					p(mod.details.requires[i]);
 				}
 			}
-				
 		};
 
-		
+	each(list,p);
 
-	for(;i<len;i++){
-		p(list[i]);
-	}
-
-
+	//有需要加载的meta文件加载
+	//否则attach模块
 	if(loadList.length>0){
-		_load(thread);
+		loadThread(thread);
 	}
 	else{
-		_attach(thread);
+		attachMod(thread);
 	}
 	
+}
+
+
+//加载thread中需要加载meta文件
+function loadThread(thread){
+	
+	//可以确保执行顺序而且并发加载的浏览器
+	if(isAsync){
+		var list=thread.f=sortLoadList(thread , true),
+			flag=list.length,
+			
+			callback=function(){
+				if(--flag==0){
+					thread.f=[];
+					callback=list=null;
+					processThread(thread,true);
+				}
+			};
+			
+		each(list,function(item){
+			loadFile(item,callback);
+		});
+		
+		return;
+	}
+	
+	//其他浏览器按顺序分组加载
+	var list=thread.f=sortLoadList(thread),	
+
+	callback=function(){
+		if(list.length==0){
+			processThread(thread,true);
+			thread=callback=list=null;
+			return;
+		}
+		loadGroup(list.shift(),callback);
+
+	};
+
+	//console.info(list);
+	loadGroup(list.shift(),callback);
 };
 
 
+function sortLoadList(thread,isAsync){
+	
+	var list=thread.f,
+		processed={},
+		ret=[],
+		
+	p=function(f){
+		if(processed[f]){
+			return;
+		}
+		processed[f]=true;
+		
+		var fobj=_meta_[f];
+		
+		if(fobj&&fobj.requires){
+			each(fobj.requires,p);
+		}
+		
+		ret.push(f);
+	}
+	
+	if(isAsync){
+		each(list,p);
+		return ret
+	}
+	
+	var maxLen=0,
+		tempAr=[],
+		groupAr=[];
+			
+	each(list,function(item){
+		p(item);
+		processed={};
+		each(ret,function(item){
+			tempAr.push(item);
+		});
+		maxLen=Math.max(maxLen,ret.length);
+		groupAr.push(tempAr);
+		ret=[];
+		tempAr=[];
+	});
+	
+	ret=[];
+	
+	while(--maxLen>=0){
+		tempAr=[];
+		processed={};
+		each(groupAr,function(ar){
+			var i=ar.shift();
+			if(!processed[i]){
+				tempAr.push(i);
+			}
+			processed[i]=true;
+		});
+		ret.push(tempAr);
+	}
+	console.info(ret);
+	return ret;
+	
 
-function _attach(thread){
+};
 
-	var ar=thread.args,
-		context=thread.context,
-		callback=thread.callback,
+function loadGroup(ar,callback){
+	if(!ar){
+		return;
+	}
+	
+	var flag=ar.length,
+		
+	cb=function(name){
+		if(--flag==0){
+			callback&&callback();
+			cb=ar=callback=flag=eachFn=null;
+		}
+	},
+	eachFn=function(item){
+		loadFile(item,cb)
+	};
+	
+	each(ar,eachFn);
+
+};
+
+
+//当所有需要使用的模块以及依赖模块都下载完毕后
+//再次处理mod的依赖关系并attach
+function attachMod(thread){
+	var ar=thread.mods,
+		context=thread.cx,
+		callback=thread.cb,
 		ret=[],
 		i=0,
 		len=ar.length,
-		mods=C.Env.mods,
+		mods=_mods_,
 		pd={};
 				
 	p=function(n){
@@ -396,14 +492,15 @@ function _attach(thread){
 		var mod=mods[n];	
 
 		if(mod&&mod.details.requires){
-			var len=mod.details.requires.length;
+			var len=mod.details.requires.length,
+				i=0;
 		
-			for(var i=0;i<len;i++){
+			for(;i<len;i++){
 				p(mod.details.requires[i]);
 			}
 		}
 		
-		if(!_isFile(n)){
+		if(!isFile(n)){
 			ret.push(n);
 		}
 	};
@@ -418,57 +515,32 @@ function _attach(thread){
 	if(callback){
 		callback(context);
 	}
-	C.Env[thread.id]=null;
 	
-};
-
-
-function _searchFile(modName){
-	var meta=META;
-	for(var f in meta){
-		if(meta.hasOwnProperty(f)){
-			var mods=meta[f].mods||[];
-			for(var i=0;i<mods.length;i++){
-				if(mods[i]==modName){
-					return f;
-				}
-			}
-		}
-	}
-	
-	return false;
-};
-
-function _isFile(name){
-	if(name.indexOf('.js')>-1||name.indexOf('.css')>-1||name.indexOf('.php')>-1){
-		return true;
-	}
-	return false;
+	_thread_[thread.id]=thread=null;	
 }
 
-//很弱的对象检测
-function _isObject(o){
-	if(!o){
-		return false;
+function Boom(){
+	var boom=this;
+	if(! boom instanceof Boom){
+		return new Boom();
 	}
-	return Object.prototype.toString.call(o)=='[object Object]';
+	boom._init();
 }
-
 
 
 proto={
 	_init:function(){
-		if(!C.Env){
-			C.Env={
-				mods:{},
+		if(!Boom.Env){
+			Boom.Env={
 				_attached:{},
 				_used:{},
-				_guidp:'ROOMS6-SEED-',
+				
+				_guidp:'BOOM-',
 				_cidx:0,
 				
-				//存贮加载script的状态 handler等
-				_scripts:scripts,
-				_meta:META
+				//把部分局部变量放出
+				mods:_mods_,
+				files:_files_
 			};
 		}
 		if(!this.Env){
@@ -479,27 +551,20 @@ proto={
 		}
 	},
 
-	
-
 	//生成唯一的id，通常用来标记DOM元素
 	guid:function(){
-		return C.Env._guidp+(++C.Env._cidx);
+		var env=Boom.Env;
+		return env._guidp+(++env._cidx);
 	},
 
-	
 	//添加模块
 	//add('modelName',function(C){},{requires:[],use:true});
 	add:function(name,fn,details){
-		C.Env.mods[name]={
+		_mods_[name]={
 			name:name,
 			fn:fn,
 			details:details||{}
 		};
-		
-		//
-		if(details&&details.use===true){
-			this.use(name);
-		}
 		
 		return this;
 	},
@@ -516,11 +581,12 @@ proto={
 			}
 		}
 		
-		META[name]=info;
+		_meta_[name]=info;
+		return this;
 	},
 	
-	//加载js或者css文件详见_loadOne
-	load:_loadOne,
+	//加载js或者css文件详见_loadFile
+	load:loadFile,
 	
 	//使用单个或多个模块
 	//.use('mod1','mod2',callback)
@@ -533,26 +599,27 @@ proto={
 			callback;
 
 		callback=(typeof args[len-1]=='function')?args.pop():null;
-	
-		C.Env[threadId]={
+		
+		//一个加载线程对象
+		_thread_[threadId]={
 			id:threadId,
-			callback:callback,
-			args:args,
-			waitList:[],
-			loadList:[],
-			ret:[],
-			context:this
+			cb:callback,
+			//最初要加载的模块
+			mods:args,
+			//需要但未找到的模块，可能不存在，也可能在未加载的meta文件中
+			unfound:[],
+			//待加载的meta文件
+			f:[],
+			cx:this
 		};
 		
-		_process(C.Env[threadId]);
+		processThread(_thread_[threadId]);
 		
 	},
 
-	
-
 	_attach:function(ar){
 		var len=ar.length,
-			mods=C.Env.mods,
+			mods=Boom.Env.mods,
 			attached=this.Env._attached;
 		
 		for(var i=0;i<len;i++){
@@ -560,169 +627,32 @@ proto={
 				mods[ar[i]].fn(this);
 				attached[ar[i]]=true;
 			}
-			
 		}
 	},
 
+	mix:mix,
+	merge:merge,
+	extend:extend
 
-
-
-//基本的对象操作 from YUI 3
-//当使用类似jquery这种非OO的js框架时 ， 可以提供最基本的OOP
-
-
-	mix:function(r, s, ov, wl, mode, merge) {
-	    if (!s||!r) {
-	        return r || this;
-	    }
-	
-	    if (mode) {
-	        switch (mode) {
-	            case 1: // proto to proto
-	                return C.mix(r.prototype, s.prototype, ov, wl, 0, merge);
-	            case 2: // object to object and proto to proto
-	                C.mix(r.prototype, s.prototype, ov, wl, 0, merge);
-	                break; // pass through 
-	            case 3: // proto to static
-	                return C.mix(r, s.prototype, ov, wl, 0, merge);
-	            case 4: // static to proto
-	                return C.mix(r.prototype, s, ov, wl, 0, merge);
-	            default:  // object to object is what happens below
-	        }
-	    }
-	
-	    // Maybe don't even need this wl && wl.length check anymore??
-	    var i, l, p;
-	
-	    if (wl && wl.length) {
-	        for (i = 0, l = wl.length; i < l; ++i) {
-	            p = wl[i];
-	            if (s.hasOwnProperty(p)) {
-	                if (merge && _isObject(r[p])) {
-	                    C.mix(r[p], s[p]);
-	                } else if (ov || !(p in r)) {
-	                    r[p] = s[p];
-	                }            
-	            }
-	        }
-	    } else {
-	        for (i in s) { 
-	            // if (s.hasOwnProperty(i) && !(i in FROZEN)) {
-	            if (s.hasOwnProperty(i)) {
-	                // check white list if it was supplied
-	                // if the receiver has this property, it is an object,
-	                // and merge is specified, merge the two objects.
-	                if (merge && _isObject(r[i])) {
-	                    C.mix(r[i], s[i], ov, wl, 0, true); // recursive
-	                // otherwise apply the property only if overwrite
-	                // is specified or the receiver doesn't have one.
-	                } else if (ov || !(i in r)) {
-	                    r[i] = s[i];
-	                }
-	                // if merge is specified and the receiver is an array,
-	                // append the array item
-	                // } else if (arr) {
-	                    // r.push(s[i]);
-	                // }
-	            }
-	        }
-	    
-	    }
-	    return r;
-	},
-
-	merge : function() {
-	    var a = arguments, o = {}, i, l = a.length;
-	    for (i=0; i<l; i=i+1) {
-	        C.mix(o, a[i], true,0,true);
-	    }
-	    return o;
-	},
-
-/**
- * Utility to set up the prototype, constructor and superclass properties to
- * support an inheritance strategy that can chain constructors and methods.
- * Static members will not be inherited.
- * @param r {Function} the object to modify
- * @param s {Function} the object to inherit
- * @param px {Object} prototype properties to add/override
- * @param sx {Object} static properties to add/override
- * @return r {Object}
- */
-
-	extend:function(r,s,px,sx){
-	    if (!s || !r){
-			return r;
-		} 
-		
-	    var OP = Object.prototype,
-	        O = function (o) {
-	                function F() {}
-	                F.prototype = o;
-	                return new F();
-	            },
-	        sp = s.prototype,
-	        rp = O(sp);
-	
-	    r.prototype = rp;
-	    rp.constructor = r;
-	    r.superclass = sp;
-
-	    // assign constructor property
-	    if (s !== Object && sp.constructor === OP.constructor) {
-	        sp.constructor = s;
-	    }
-	
-	    // add prototype overrides
-	    if (px) {
-	        C.mix(rp, px,true);
-	    }
-	
-	    // add object overrides
-	    if (sx) {
-	        C.mix(r, sx,true);
-	    }
-	
-	    return r;		
-	}
 };
 
-C.prototype=proto;
+Boom.prototype=proto;
 
 for(p in proto){
-	C[p]=proto[p];
+	Boom[p]=proto[p];
 }
 
+Boom._init();
 
-C._init();
-
-
-})(CN6,window);
+win[symbol]=win.CN6=win.Boom=Boom;
 
 
-/**@define {boolean} */
-var _BOOM_DEBUG_=true;
+})(window,document);
 
 
-/**
- * NOTE:
- * 
- * #Bug 1#发现一个问题 ， 如果加载非模块化的js (js 里不是用.add申明模块，比如jquery 插件) 在firefox这种
- * 可以并发加载按顺序的浏览器下可能会出错。
- * 出错的情况如下：a.js,b.js 两个js互不依赖，如果为了更快的加载a.js 我们会在HTML里靠前的位置先 .load('a.js') ,然后再 .use('b.js','a.js',callback)
- * 由于上诉浏览器的加载机制是只给加载列队的最后一个请求的script绑定回调事件，在上面的例子里，只给a.js加了回调，而且a.js又是提前加载了，这样在
- * a.js加载成功后会理解调用callback而不管b.js是否加载成功，这样就会报错。
- * 可以改进加载机制避免这种问题，但值得吗？ 是否要定一个必须使用.add 申明的规范？  -- 11-05-21
- * 
- * 是否要加上加载失败的提示。参考：http://lifesinger.org/lab/2011/load-js-css/
- * 
- * 改进了isAsync浏览器的加载方式，解决了Bug 1  -- 11-5-25
- * 
- * 
- * 
- */
-
-//yes
 
 
-/*BOOM_ADD_FILE*/
+
+
+
+
