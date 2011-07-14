@@ -7,16 +7,19 @@
  * 
  */
 
+//for debug
+if(!typeof console == 'object'){
+	
+}
+//for debug end
 
 (function(win,doc){
 
+console.info('11');
 var LOADING=0,
 	LOADED=1;
 	
-	//存贮加载文件的状态 handler等
-var _files_={},
-	_config_={},
-	_thread_={},
+var _config_={},
 	//通过.addFile添加的meta文件
 	_meta_={
 	/*
@@ -28,7 +31,11 @@ var _files_={},
 	*/
 	},
 	//通过.add 添加的模块
-	_mods_={};
+	_mods_={}, 
+	//存贮加载文件的状态 handler等
+	_files_={},
+	_thread_={};
+
 	
 var proto,
 
@@ -178,10 +185,8 @@ function extend(r,s,px,sx){
 
 
 function isFile(name){
-	if(name.indexOf('.js')>-1||name.indexOf('.css')>-1||name.indexOf('.php')>-1){
-		return true;
-	}
-	return false;
+	var extend=name.substring(name.lastIndexOf('.')+1);
+	return extend=='js'||extend=='css';
 }
 
 //找到模块所在的meta文件
@@ -194,7 +199,7 @@ function searchFile(modName){
 		
 	for(f in meta){
 		if(meta.hasOwnProperty(f)){
-			mods=meta[f].mods||[];
+			mods=meta[f]&&meta[f].mods||[];
 			len=mods.length;
 			for(i=0;i<len;i++){
 				if(mods[i]==modName){
@@ -273,7 +278,7 @@ function loadFile(name,callback){
 }
 
 //一个thread可能会多次调用此函数
-//因为包含有某mod的meta文件加载前我们无法知道此mod是否需要其他mod，
+//因为包含某mod的meta文件加载前我们无法知道此mod是否依赖其他mod，
 //参数fromLoader 为真时 说明不是第一调用
 //来处理首次调用未能处理的mod (unfoundMod)
 function processThread(thread,fromLoader){
@@ -323,12 +328,7 @@ function processThread(thread,fromLoader){
 			}
 
 			if(mod&&mod.details.requires){
-				var len=mod.details.requires.length,
-					i=0;
-			
-				for(;i<len;i++){
-					p(mod.details.requires[i]);
-				}
+				each(mod.details.requires,p)
 			}
 		};
 
@@ -418,13 +418,17 @@ function sortLoadList(thread,isAsync){
 		groupAr=[];
 			
 	each(list,function(item){
+		//now,ret had processed files
 		p(item);
 		processed={};
+		//copy ret to tempAr
 		each(ret,function(item){
 			tempAr.push(item);
 		});
 		maxLen=Math.max(maxLen,ret.length);
+		//save result to groupAr
 		groupAr.push(tempAr);
+		//reset ret and tempAr
 		ret=[];
 		tempAr=[];
 	});
@@ -436,14 +440,15 @@ function sortLoadList(thread,isAsync){
 		processed={};
 		each(groupAr,function(ar){
 			var i=ar.shift();
-			if(!processed[i]){
+			//去重
+			if(i&&!processed[i]){
 				tempAr.push(i);
 			}
 			processed[i]=true;
 		});
 		ret.push(tempAr);
 	}
-	console.info(ret);
+
 	return ret;
 	
 
@@ -474,49 +479,39 @@ function loadGroup(ar,callback){
 //当所有需要使用的模块以及依赖模块都下载完毕后
 //再次处理mod的依赖关系并attach
 function attachMod(thread){
-	var ar=thread.mods,
-		context=thread.cx,
+	var context=thread.cx,
 		callback=thread.cb,
 		ret=[],
-		i=0,
-		len=ar.length,
 		mods=_mods_,
-		pd={};
+		processed={};
 				
 	p=function(n){
-		if(pd[n]){
+		if(processed[n]){
 			return;
 		}
-		pd[n]=true;
+		processed[n]=true;
 		
 		var mod=mods[n];	
 
 		if(mod&&mod.details.requires){
-			var len=mod.details.requires.length,
-				i=0;
-		
-			for(;i<len;i++){
-				p(mod.details.requires[i]);
-			}
+			each(mod.details.requires,p);
 		}
 		
-		if(!isFile(n)){
+		if(mod&&!isFile(n)){
 			ret.push(n);
 		}
 	};
 		
-	for(;i<len;i++){
-		p(ar[i]);
-	}
+	each(thread.mods,p);
 	
 	
 	context._attach(ret);
 	
-	if(callback){
-		callback(context);
-	}
+	callback&&callback(context);
 	
-	_thread_[thread.id]=thread=null;	
+	delete _thread_[thread.id];
+	thread=null;
+
 }
 
 function Boom(){
@@ -533,19 +528,18 @@ proto={
 		if(!Boom.Env){
 			Boom.Env={
 				_attached:{},
-				_used:{},
 				
 				_guidp:'BOOM-',
 				_cidx:0,
 				
 				//把部分局部变量放出
 				mods:_mods_,
-				files:_files_
+				meta:_meta_,
+				thread:_thread_
 			};
 		}
 		if(!this.Env){
 			this.Env={
-				_used:{},
 				_attached:{}
 			};
 		}
@@ -580,19 +574,18 @@ proto={
 				}
 			}
 		}
-		
 		_meta_[name]=info;
 		return this;
 	},
 	
-	//加载js或者css文件详见_loadFile
+	//加载js或者css文件详见loadFile
 	load:loadFile,
 	
 	//使用单个或多个模块
 	//.use('mod1','mod2',callback)
 	//或者加载一个或多个文件！
 	//.use('a.js','b.js',callback)
-	use:function(){		
+	use:function(){
 		var args=Array.prototype.slice.call(arguments,0),
 			len=args.length,
 			threadId=this.guid(),
@@ -618,16 +611,16 @@ proto={
 	},
 
 	_attach:function(ar){
-		var len=ar.length,
-			mods=Boom.Env.mods,
-			attached=this.Env._attached;
-		
-		for(var i=0;i<len;i++){
-			if(!attached[ar[i]]){
-				mods[ar[i]].fn(this);
-				attached[ar[i]]=true;
-			}
-		}
+		var mods=_mods_,
+			attached=this.Env._attached,
+			self=this;
+
+		each(ar,function(item){
+			if(!attached[item]){
+				mods[item].fn(self);
+				attached[item]=true;
+			}	
+		});
 	},
 
 	mix:mix,
