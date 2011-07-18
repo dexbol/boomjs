@@ -6,6 +6,9 @@
 <link href="qunit-git.css"  type="text/css" rel="stylesheet" />
 <script type="text/javascript" src="jquery-latest.js"></script>
 <script type="text/javascript" src="qunit-git.js"></script>
+
+<script type="text/javascript" src="../dev/boom.js"></script>
+
 </head>
 <body>
 <h1 id="qunit-header">Boom Test</h1>
@@ -15,9 +18,80 @@
 <ol id="qunit-tests"></ol>
 <div id="qunit-fixture">test markup, will be hidden</div>
 
-<script type="text/javascript" src="../dev/boom.source.js"></script>
 <script type="text/javascript">
+/*
+asnycTest('try',function(){
+	
+});
+*/
+module('Normal Module');
 
+test('add module',3,function(){
+
+	Boom.add('mod1',function(C){
+		C.mod1=true
+	});
+
+	ok(Boom.Env.mods.hasOwnProperty('mod1'),'add module success');
+	
+	Boom.use('mod1',function(){
+		ok(true,'attache module callabck');
+	});
+
+	ok(Boom.mod1,'use module success');
+
+});
+
+
+test('use module',1,function(C){
+	Boom.add('base',function(C){
+		C.base=function(){
+			
+		}
+	});
+	Boom.add('extend',function(C){
+		ok(typeof C.base =='function','require modlue success');
+	},{requires:['base']});
+
+	Boom.use('extend');
+});
+
+module('File Module');
+
+test('add file',function(){
+	Boom.addFile({
+		'base.js':{fullpath:'base.js'},
+		'mA_mB_mC.js':{fullpath:'mA_mB_mC.js',requires:['base.js'],mods:['mA','mB','mC']},
+		'mD.js':{fullpath:'mD.js',requires:['base.js'],mods:['mD']},
+		'mE.js':{fullpath:'mE.js',requires:['base.js'],mods:['mE']}
+	});
+	
+	var meta=Boom.Env.meta;
+	ok(meta.hasOwnProperty('base.js')&&
+	meta.hasOwnProperty('mA_mB_mC.js')&&meta.hasOwnProperty('mD.js')&&
+	meta.hasOwnProperty('mE.js'),'add file success');
+
+
+});
+
+test('use file',function(){
+	stop();
+	
+	Boom.use('mD.js',function(){
+		start();
+		ok(F_base&&F_mD,'use file success');
+	});
+
+	
+});
+
+test('use modle by file',function(){
+	stop();
+	Boom.use('mA',function(C){
+		start();
+		ok(typeof C.output == 'function'&&C.mA,'base.js loaded , mA attached');
+	});	
+});
 </script>
 </body>
 </html>

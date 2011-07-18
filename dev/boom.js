@@ -8,14 +8,20 @@
  */
 
 //for debug
-if(!typeof console == 'object'){
-	
+if (!window.console) {
+  (function() {
+    var names = ["log", "debug", "info", "warn", "error", "assert", "dir", "dirxml",
+ 	 "group", "groupEnd", "time", "timeEnd", "count", "trace", "profile", "profileEnd"];
+    window.console = {};
+    for (var i = 0; i < names.length; ++i) {
+      window.console[names[i]] = function() {};
+    }
+  }());
 }
 //for debug end
 
 (function(win,doc){
 
-console.info('11');
 var LOADING=0,
 	LOADED=1;
 	
@@ -573,6 +579,7 @@ proto={
 					this.addFile(p,name[p]);
 				}
 			}
+			return;
 		}
 		_meta_[name]=info;
 		return this;
