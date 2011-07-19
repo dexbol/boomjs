@@ -60,7 +60,7 @@ var proto,
 	isAsync=doc.createElement("script").async === true ||
 					"MozAppearance" in doc.documentElement.style ||
 					window.opera;
-	isAsync=false;
+	//isAsync=false;
 
 
 //很弱的对象检测
@@ -202,7 +202,7 @@ function searchFile(modName){
 		mods,
 		i,
 		len;
-		
+	
 	for(f in meta){
 		if(meta.hasOwnProperty(f)){
 			mods=meta[f]&&meta[f].mods||[];
@@ -315,8 +315,9 @@ function processThread(thread,fromLoader){
 				file;
 			
 			if(!mod){
-				file=searchFile(modName);
 				
+				file=searchFile(modName);
+
 				//防止meta对象中mods信息与文件中实际添加模块的信息不一致
 				//比如:用户添加文件 .addFile({'test.js',{mods:['a','b']}});
 				//但是test.js内只添加了模块a，没有b，这时候就会造成死循环，不断的加载test.js
@@ -579,9 +580,11 @@ proto={
 					this.addFile(p,name[p]);
 				}
 			}
-			return;
 		}
-		_meta_[name]=info;
+		else{
+			console.log('Add Meta File :: '+name);
+			_meta_[name]=info;	
+		}
 		return this;
 	},
 	

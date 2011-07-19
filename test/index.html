@@ -65,7 +65,7 @@ test('add file',function(){
 		'mD.js':{fullpath:'mD.js',requires:['base.js'],mods:['mD']},
 		'mE.js':{fullpath:'mE.js',requires:['base.js'],mods:['mE']}
 	});
-	
+	Boom.addFile('base.js',{fullpath:'base.js'});
 	var meta=Boom.Env.meta;
 	ok(meta.hasOwnProperty('base.js')&&
 	meta.hasOwnProperty('mA_mB_mC.js')&&meta.hasOwnProperty('mD.js')&&
@@ -73,6 +73,7 @@ test('add file',function(){
 
 
 });
+
 
 test('use file',function(){
 	stop();
@@ -85,13 +86,20 @@ test('use file',function(){
 	
 });
 
+
+
 test('use modle by file',function(){
 	stop();
+
 	Boom.use('mA',function(C){
 		start();
 		ok(typeof C.output == 'function'&&C.mA,'base.js loaded , mA attached');
 	});	
 });
+
+
+
+
 </script>
 </body>
 </html>
