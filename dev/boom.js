@@ -218,70 +218,79 @@ function searchFile(modName){
 	return false;
 };
 
+
+
+
 function loadFile(name,callback){
 	var metaFile=_meta_,
 		src=metaFile[name]?metaFile[name].fullpath:name,
-		type=src.indexOf('.css')>-1?'css':'js',
-		script=_files_[name];
+		type=src.substring(src.lastIndexOf('.')+1)=='css'?'css':'js',
+		file=_files_[name],
+		node;
 	
+
+	if(!file){
+		//简短属性名n:name,h:handler,s:status
+		file=_files_[name]={n:name,h:[callback?callback:null],s:-1};
+	}
+	
+	//css文件不能回调 请求后立即callback并返回
 	if(type=='css'){
-		var l=document.createElement('link');
-		l.setAttribute('href',src);
-		l.setAttribute('type','text/css');
-		l.setAttribute('rel','stylesheet');
-		jsSelf.parentNode.insertBefore(l,jsSelf);
+		node=doc.createElement('link');
+		node.href=src;
+		node.type='text/css';
+		node.rel='stylesheet';
+		jsSelf.parentNode.insertBefore(node,jsSelf);
+		callback&&callback();
+		file.s=LOADED;
 		return;
 	}
 	
-	if(!script){
-		script=_files_[name]={handler:[callback?callback:null]};
-	}
-	
-
-	if(script.status==LOADED){
-		if(callback){
-			callback(name);
-		}
+	if(file.s==LOADED){
+		callback&&callback(name);
 		return;
 	}
 	
-	if(script.status==LOADING){
-		if(callback){
-			script.handler.push(callback);
-		}		
+	if(file.s==LOADING){
+		callback&&file.h.push(callback);
 		return;
 	}
 	
 
-	var node=document.createElement('script');
+	
+	node=doc.createElement('script');
 	node.src=src;
-	node.async=false;
+	node.async=false;		
+	
+	
+
 	node.onload=node.onreadystatechange=function(){
 		if(!this.readyState || this.readyState=='loaded' || this.readyState=='complete'){
 			
 			
 			//ie9 由于下面script=null ,会导致报错。
-			script.status=LOADED;
+			file.status=LOADED;
 			
-			var handler=script.handler,
+			var handler=file.h,
 				fn;
 
 			while(handler.length>0){
 				fn=handler.shift();
-				if(fn){
-					fn(name);
-				}
+				fn&&fn(name);
 			}
 			
-			
 			node.load=node.onreadystatechange=null;
+			
+			console.log('Loaded : '+file.n);
 		}
 
 	}
 
 	jsSelf.parentNode.insertBefore(node,jsSelf);
-	script.status=LOADING;	
+	file.s=LOADING;	
 }
+
+
 
 //一个thread可能会多次调用此函数
 //因为包含某mod的meta文件加载前我们无法知道此mod是否依赖其他mod，
@@ -292,20 +301,24 @@ function processThread(thread,fromLoader){
 		unfoundMod=thread.unfound,
 		list=fromLoader?unfoundMod:thread.mods,
 		mods=_mods_,
+		//存放已经处理过的文件或模块
 		processed={},
 		
 
 		p=function(modName){
+			
 			if(!modName || processed[modName]){
 				return;
 			}
 			
+			console.log('Process Module : '+modName);
+
 			processed[modName]=true;
 			
 			//要加载的模块是一个meta文件，直接放入加载列表并返回
 			if(isFile(modName)){
 				//如果还没加载
-				if(!(_files_[modName]&&_files_[modName].status==LOADED)){
+				if(!(_files_[modName]&&_files_[modName].s==LOADED)){
 					loadList.push(modName);
 				}
 				return;
@@ -315,17 +328,15 @@ function processThread(thread,fromLoader){
 				file;
 			
 			if(!mod){
-				
 				file=searchFile(modName);
 
 				//防止meta对象中mods信息与文件中实际添加模块的信息不一致
 				//比如:用户添加文件 .addFile({'test.js',{mods:['a','b']}});
 				//但是test.js内只添加了模块a，没有b，这时候就会造成死循环，不断的加载test.js
-				if(_files_[file]&&_files_[file].status==LOADED){
+				if(!file || (_files_[file]&&_files_[file].status==LOADED)){
 					throw new Error('Can\'t found the module : '+modName);
-					return;
 				}
-			
+
 				if(file && !processed[file]){
 					loadList.push(file);
 					processed[file]=true;
@@ -389,7 +400,6 @@ function loadThread(thread){
 
 	};
 
-	//console.info(list);
 	loadGroup(list.shift(),callback);
 };
 
@@ -588,8 +598,16 @@ proto={
 		return this;
 	},
 	
-	//加载js或者css文件详见loadFile
-	load:loadFile,
+	//加载js或者css文件
+	//参数可以meta文件名或者是url地址，此方法将忽略文件间的依赖关系
+	//并行加载所有文件
+	//.load('a.js','http://xx.xx/a.js');
+	load:function(){
+		var ar=[].slice.call(arguments,0);
+		each(ar,function(item){
+			loadFile(item)
+		});
+	},
 	
 	//使用单个或多个模块
 	//.use('mod1','mod2',callback)
@@ -615,7 +633,6 @@ proto={
 			f:[],
 			cx:this
 		};
-		
 		processThread(_thread_[threadId]);
 		
 	},

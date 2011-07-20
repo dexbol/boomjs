@@ -32,7 +32,12 @@ CN6.addFile('mD.js',{
 
 CN6.addFile('mE.js',{
 	fullpath:'mE.js',
-	mods:['mE']})
+	mods:['mE']});
+
+CN6.addFile('a.css',{
+	fullpath:'a.css'
+});
+
 
 function output(msg){
 	var p=document.createElement('p');
@@ -64,7 +69,7 @@ CN6.use('a',function(C){
 })
 */
 
-CN6.use('mE','mD',function(){
+CN6.use('mD',function(){
 console.info('ok');
 });
 

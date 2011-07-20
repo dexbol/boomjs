@@ -19,12 +19,9 @@
 <div id="qunit-fixture">test markup, will be hidden</div>
 
 <script type="text/javascript">
-/*
-asnycTest('try',function(){
-	
-});
-*/
-module('Normal Module');
+
+
+
 
 test('add module',3,function(){
 
@@ -56,41 +53,40 @@ test('use module',1,function(C){
 	Boom.use('extend');
 });
 
-module('File Module');
+
+
 
 test('add file',function(){
 	Boom.addFile({
-		'base.js':{fullpath:'base.js'},
+		'base.js':{fullpath:'base.js',mods:['util']},
 		'mA_mB_mC.js':{fullpath:'mA_mB_mC.js',requires:['base.js'],mods:['mA','mB','mC']},
 		'mD.js':{fullpath:'mD.js',requires:['base.js'],mods:['mD']},
-		'mE.js':{fullpath:'mE.js',requires:['base.js'],mods:['mE']}
+		'mE.js':{fullpath:'mE.js',requires:['base.js'],mods:['mE']},
+		'needCss.js':{fullpath:'needCss.js',requires:['a.css'],mods:['needCss']},
+		'a.css':{fullpath:'a.css'}
 	});
-	Boom.addFile('base.js',{fullpath:'base.js'});
+
 	var meta=Boom.Env.meta;
 	ok(meta.hasOwnProperty('base.js')&&
-	meta.hasOwnProperty('mA_mB_mC.js')&&meta.hasOwnProperty('mD.js')&&
+	meta.hasOwnProperty('mA_mB_mC.js')&&
+	meta.hasOwnProperty('mD.js')&&
+	meta.hasOwnProperty('needCss.js')&&
+	meta.hasOwnProperty('a.css')&&
 	meta.hasOwnProperty('mE.js'),'add file success');
-
-
 });
 
 
-test('use file',function(){
-	stop();
-	
+asyncTest('use file',1,function(){
+
 	Boom.use('mD.js',function(){
 		start();
 		ok(F_base&&F_mD,'use file success');
 	});
-
-	
 });
 
 
 
-test('use modle by file',function(){
-	stop();
-
+asyncTest('use module by file',function(){
 	Boom.use('mA',function(C){
 		start();
 		ok(typeof C.output == 'function'&&C.mA,'base.js loaded , mA attached');
@@ -98,6 +94,24 @@ test('use modle by file',function(){
 });
 
 
+asyncTest('use module that require css file',2,function(){
+	/*
+	Boom.use('needCss',function(){
+		start();
+		ok(jQuery('body').css('backgroundColor')=='red','css is loaded');
+		ok(true,'needCss module used');
+	});*/
+
+	Boom.use('a.css','needCss.js');
+	start();
+})
+
+
+asyncTest('load muti file',2,function(){
+	var FILE_1,FILE_2;
+	stop();
+	Boom.load('f1.js','f2.js');
+});
 
 
 </script>

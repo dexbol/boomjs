@@ -9,11 +9,11 @@
 */
 
 
-CN6.add('mD',function(C){
-	C.mD=true;
-},{requires:['util','a.css']});
+CN6.add('needCss',function(C){
 
-
-CN6.use('util',function(C){
-	C.output('mD.js is loaded');
-})
+	C.resetBackground=function(){
+		jQuery('body').css('backgroundColor','white');
+	}
+	
+	
+},{requires:['a.css']});
