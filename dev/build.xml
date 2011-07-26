@@ -8,7 +8,7 @@
     <target name="publish">
     	<copy file="${current.dir}/boom.js" tofile="${current.dir}/temp/boom.js" encoding="${charset}" />
     	<copy file="${current.dir}/temp/boom.js" tofile="${current.dir}/temp/boom-debug.js" encoding="${charset}" />
-    	<replaceregexp file="${current.dir}/temp/boom.js" match="(\n\t*console\..*\n)|(\n\/\/for debug[\s\S]*\n\/\/for debug end)"  replace="" flags="g" encoding="${charset}" />
+    	<replaceregexp file="${current.dir}/temp/boom.js" match="(\n?\t?console\..*\n)|(\n\/\/for debug[\s\S]*\n\/\/for debug end)"  replace="" flags="g" encoding="${charset}" />
         <apply executable="java" verbose="true" dest="${current.dir}/temp">
             <fileset dir="${current.dir}/temp" includes="boom.js" />
             <arg line="-jar" />

@@ -235,7 +235,8 @@ function loadFile(name,callback){
 		node.rel='stylesheet';
 		jsSelf.parentNode.insertBefore(node,jsSelf);
 		callback&&callback();
-		file.s=LOADED;		return;
+		file.s=LOADED;
+			return;
 	}
 	
 	if(file.s==LOADED){
@@ -276,7 +277,8 @@ function loadFile(name,callback){
 			}
 			
 			node.load=node.onreadystatechange=null;
-					}
+			
+				}
 
 	}
 
@@ -305,7 +307,8 @@ function processThread(thread,fromLoader){
 			if(!modName || processed[modName]){
 				return;
 			}
-			
+			
+		
 			processed[modName]=true;
 			
 			//要加载的模块是一个meta文件，直接放入加载列表并返回
@@ -344,8 +347,7 @@ function processThread(thread,fromLoader){
 		};
 
 	each(list,p);
-	console.groupEnd();
-	//有需要加载的meta文件加载
+	//有需要加载的meta文件加载
 	//否则attach模块
 	if(loadList.length>0){
 		loadThread(thread);
@@ -515,7 +517,7 @@ function attachMod(thread){
 	
 	
 	context._attach(ret);
-	console.info(thread);	
+	
 	callback&&callback(context);
 	
 	delete _thread_[thread.id];
@@ -583,7 +585,8 @@ proto={
 				}
 			}
 		}
-		else{			_meta_[name]=info;	
+		else{
+					_meta_[name]=info;	
 		}
 		return this;
 	},
