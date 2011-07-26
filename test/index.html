@@ -21,26 +21,24 @@
 <script type="text/javascript">
 
 
-
-
-test('add module',3,function(){
+asyncTest('add module',3,function(){
 
 	Boom.add('mod1',function(C){
 		C.mod1=true
 	});
 
-	ok(Boom.Env.mods.hasOwnProperty('mod1'),'add module success');
+	ok(Boom.Env._mods.hasOwnProperty('mod1'),'add module success');
 	
 	Boom.use('mod1',function(){
 		ok(true,'attache module callabck');
 	});
 
 	ok(Boom.mod1,'use module success');
-
+	start();
 });
 
 
-test('use module',1,function(C){
+asyncTest('use module',1,function(C){
 	Boom.add('base',function(C){
 		C.base=function(){
 			
@@ -51,36 +49,36 @@ test('use module',1,function(C){
 	},{requires:['base']});
 
 	Boom.use('extend');
+	start()
 });
 
 
 
+asyncTest('add file',function(){
 
-test('add file',function(){
 	Boom.addFile({
 		'base.js':{fullpath:'base.js',mods:['util']},
 		'mA_mB_mC.js':{fullpath:'mA_mB_mC.js',requires:['base.js'],mods:['mA','mB','mC']},
 		'mD.js':{fullpath:'mD.js',requires:['base.js'],mods:['mD']},
 		'mE.js':{fullpath:'mE.js',requires:['base.js'],mods:['mE']},
 		'needCss.js':{fullpath:'needCss.js',requires:['a.css'],mods:['needCss']},
-		'a.css':{fullpath:'a.css'}
+		'a.css':{fullpath:'a.css'},
+		'timeout.js':{fullpath:'timeout.js'}
 	});
 
-	var meta=Boom.Env.meta;
+	var meta=Boom.Env._meta;
 	ok(meta.hasOwnProperty('base.js')&&
-	meta.hasOwnProperty('mA_mB_mC.js')&&
-	meta.hasOwnProperty('mD.js')&&
-	meta.hasOwnProperty('needCss.js')&&
-	meta.hasOwnProperty('a.css')&&
-	meta.hasOwnProperty('mE.js'),'add file success');
+	meta.hasOwnProperty('mA_mB_mC.js'),'add file success');
+
+	setTimeout(start,100);
+
 });
 
 
 asyncTest('use file',1,function(){
-
 	Boom.use('mD.js',function(){
-		start();
 		ok(F_base&&F_mD,'use file success');
+		start();
 	});
 });
 
@@ -88,30 +86,37 @@ asyncTest('use file',1,function(){
 
 asyncTest('use module by file',function(){
 	Boom.use('mA',function(C){
-		start();
 		ok(typeof C.output == 'function'&&C.mA,'base.js loaded , mA attached');
+		start();
+
 	});	
 });
 
 
-asyncTest('use module that require css file',2,function(){
-	/*
+
+asyncTest('use module that require css file',1,function(){
+
 	Boom.use('needCss',function(){
 		start();
-		ok(jQuery('body').css('backgroundColor')=='red','css is loaded');
+		jQuery('body').css('backgroundColor','white');
 		ok(true,'needCss module used');
-	});*/
+	});
 
-	Boom.use('a.css','needCss.js');
-	start();
-})
+});
 
+asyncTest('load timeout',function(){
+	Boom.config('fail',function(){
+		ok(true,'timeout');
+		start();
+	});
+	Boom.load('timeout.js');
+});
 
 asyncTest('load muti file',2,function(){
 	var FILE_1,FILE_2;
-	stop();
 	Boom.load('f1.js','f2.js');
 });
+
 
 
 </script>

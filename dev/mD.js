@@ -11,9 +11,6 @@
 
 CN6.add('mD',function(C){
 	C.mD=true;
-},{requires:['util','a.css']});
+});
 
 
-CN6.use('util',function(C){
-	C.output('mD.js is loaded');
-})

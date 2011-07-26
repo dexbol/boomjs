@@ -27,6 +27,4 @@ CN6.add('util',function(C){
 	C.output=output
 });
 
-CN6.use('util',function(C){
-	C.output('base.js is loaded');
-});
+

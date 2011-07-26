@@ -10,33 +10,16 @@ body{padding:10px 320px 0 0;font:12px/1.5  Tahoma,Simsun,Arial,Helvetica,sans-se
 .console p{padding:8px 10px;border-bottom:1px dashed #666666;}
 pre{padding:10px;border:1px dashed #999999;}
 </style>
-<script type="text/javascript">var _BOOM_DEBUG_=true;</script>
 <script type="text/javascript" src="boom.js" data-boom-symbol="CN6"></script>
 <script type="text/javascript">
 
 
-CN6.addFile('base.js',{
-	fullpath:'base.js',
-	mods:['util']
-});
-
-
-
-CN6.addFile('mA_mB_mC.js',{
-	fullpath:'mA_mB_mC.js',
-	mods:['mA','mB','mC']})
-
-CN6.addFile('mD.js',{
-	fullpath:'mD.js',
-	mods:['mD']})
-
-CN6.addFile('mE.js',{
-	fullpath:'mE.js',
-	mods:['mE']});
-
-CN6.addFile('a.css',{
-	fullpath:'a.css'
-});
+	Boom.addFile({
+		'base.js':{fullpath:'base.js',mods:['util']},
+		'mA_mB_mC.js':{fullpath:'mA_mB_mC.js',requires:['base.js'],mods:['mA','mB','mC']},
+		'mD.js':{fullpath:'mD.js',requires:['base.js'],mods:['mD']},
+		'mE.js':{fullpath:'mE.js',requires:['base.js'],mods:['mE']}
+	});
 
 
 function output(msg){
@@ -55,23 +38,14 @@ function output(msg){
 
 <script type="text/javascript">
 
+	Boom.use('mD.js',function(){
+		Boom.use('mA',function(C){
+			alert(11);
+	
+		});
+	});
 
-/*
-CN6.add('a',function(C){
-	C.a='a'
-},{requires:['b']});
-CN6.add('b',function(C){
-	C.a='b'
-},{requires:['a']});
 
-CN6.use('a',function(C){
-	console.info('ok');
-})
-*/
-
-CN6.use('mD',function(){
-console.info('ok');
-});
 
 
 </script>

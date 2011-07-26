@@ -22,6 +22,4 @@ CN6.add('mC',function(C){
 	
 },{requires:['util']});
 
-CN6.use('util',function(C){
-	C.output('mA_mB_mC.js is loaded');
-})
+

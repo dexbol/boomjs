@@ -8,10 +8,10 @@
  */
 
 //for debug
-if (!window.console) {
+if (!(window.console&&window.console.group)) {
   (function() {
     var names = ["log", "debug", "info", "warn", "error", "assert", "dir", "dirxml",
- 	 "group", "groupEnd", "time", "timeEnd", "count", "trace", "profile", "profileEnd"];
+ 	 "group", "groupCollapsed","groupEnd", "time", "timeEnd", "count", "trace", "profile", "profileEnd"];
     window.console = {};
     for (var i = 0; i < names.length; ++i) {
       window.console[names[i]] = function() {};
@@ -25,7 +25,12 @@ if (!window.console) {
 var LOADING=0,
 	LOADED=1;
 	
-var _config_={},
+var _config_={
+		timeout:6000,
+		fail:function(name,src){
+			doc.title='✖ '+src+' Load Failed,Please Refresh';
+		}
+	},
 	//通过.addFile添加的meta文件
 	_meta_={
 	/*
@@ -233,7 +238,7 @@ function loadFile(name,callback){
 		//简短属性名n:name,h:handler,s:status
 		file=_files_[name]={n:name,h:[callback?callback:null],s:-1};
 	}
-	
+
 	//css文件不能回调 请求后立即callback并返回
 	if(type=='css'){
 		node=doc.createElement('link');
@@ -243,6 +248,7 @@ function loadFile(name,callback){
 		jsSelf.parentNode.insertBefore(node,jsSelf);
 		callback&&callback();
 		file.s=LOADED;
+		console.log('Load Css : '+name);
 		return;
 	}
 	
@@ -260,16 +266,20 @@ function loadFile(name,callback){
 	
 	node=doc.createElement('script');
 	node.src=src;
-	node.async=false;		
+	node.async=false;
 	
+	//加载超时处理
+	file.t=win.setTimeout(function(){
+		_config_.fail(name,src);
+	},_config_.timeout);
 	
-
 	node.onload=node.onreadystatechange=function(){
 		if(!this.readyState || this.readyState=='loaded' || this.readyState=='complete'){
 			
+			win.clearTimeout(file.t);
 			
-			//ie9 由于下面script=null ,会导致报错。
-			file.status=LOADED;
+			//ie9 script=null ,会导致报错。
+			file.s=LOADED;
 			
 			var handler=file.h,
 				fn;
@@ -297,6 +307,9 @@ function loadFile(name,callback){
 //参数fromLoader 为真时 说明不是第一调用
 //来处理首次调用未能处理的mod (unfoundMod)
 function processThread(thread,fromLoader){
+	
+	console.groupCollapsed('Process Thread : ' +thread.id);
+	
 	var loadList=thread.f,
 		unfoundMod=thread.unfound,
 		list=fromLoader?unfoundMod:thread.mods,
@@ -304,7 +317,7 @@ function processThread(thread,fromLoader){
 		//存放已经处理过的文件或模块
 		processed={},
 		
-
+		
 		p=function(modName){
 			
 			if(!modName || processed[modName]){
@@ -352,6 +365,8 @@ function processThread(thread,fromLoader){
 
 	each(list,p);
 
+	console.info(loadList);
+	console.groupEnd();
 	//有需要加载的meta文件加载
 	//否则attach模块
 	if(loadList.length>0){
@@ -371,7 +386,6 @@ function loadThread(thread){
 	if(isAsync){
 		var list=thread.f=sortLoadList(thread , true),
 			flag=list.length,
-			
 			callback=function(){
 				if(--flag==0){
 					thread.f=[];
@@ -379,7 +393,7 @@ function loadThread(thread){
 					processThread(thread,true);
 				}
 			};
-			
+
 		each(list,function(item){
 			loadFile(item,callback);
 		});
@@ -523,6 +537,10 @@ function attachMod(thread){
 	
 	
 	context._attach(ret);
+
+	console.groupCollapsed('Completed Thread: '+thread.id);
+	console.info(thread);
+	console.groupEnd();
 	
 	callback&&callback(context);
 	
@@ -550,9 +568,9 @@ proto={
 				_cidx:0,
 				
 				//把部分局部变量放出
-				mods:_mods_,
-				meta:_meta_,
-				thread:_thread_
+				_mods:_mods_,
+				_meta:_meta_,
+				_thread:_thread_
 			};
 		}
 		if(!this.Env){
@@ -648,6 +666,10 @@ proto={
 				attached[item]=true;
 			}	
 		});
+	},
+	
+	config:function(key,value){
+		_config_[key]=value;
 	},
 
 	mix:mix,

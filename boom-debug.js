@@ -8,10 +8,10 @@
  */
 
 //for debug
-if (!window.console) {
+if (!(window.console&&window.console.group)) {
   (function() {
     var names = ["log", "debug", "info", "warn", "error", "assert", "dir", "dirxml",
- 	 "group", "groupEnd", "time", "timeEnd", "count", "trace", "profile", "profileEnd"];
+ 	 "group", "groupCollapsed","groupEnd", "time", "timeEnd", "count", "trace", "profile", "profileEnd"];
     window.console = {};
     for (var i = 0; i < names.length; ++i) {
       window.console[names[i]] = function() {};
@@ -25,7 +25,12 @@ if (!window.console) {
 var LOADING=0,
 	LOADED=1;
 	
-var _config_={},
+var _config_={
+		timeout:6000,
+		fail:function(name,src){
+			doc.title='✖ '+src+' Load Failed,Please Refresh';
+		}
+	},
 	//通过.addFile添加的meta文件
 	_meta_={
 	/*
@@ -218,94 +223,115 @@ function searchFile(modName){
 	return false;
 };
 
+
+
+
 function loadFile(name,callback){
 	var metaFile=_meta_,
 		src=metaFile[name]?metaFile[name].fullpath:name,
-		type=src.indexOf('.css')>-1?'css':'js',
-		script=_files_[name];
+		type=src.substring(src.lastIndexOf('.')+1)=='css'?'css':'js',
+		file=_files_[name],
+		node;
 	
+
+	if(!file){
+		//简短属性名n:name,h:handler,s:status
+		file=_files_[name]={n:name,h:[callback?callback:null],s:-1};
+	}
+
+	//css文件不能回调 请求后立即callback并返回
 	if(type=='css'){
-		var l=document.createElement('link');
-		l.setAttribute('href',src);
-		l.setAttribute('type','text/css');
-		l.setAttribute('rel','stylesheet');
-		jsSelf.parentNode.insertBefore(l,jsSelf);
+		node=doc.createElement('link');
+		node.href=src;
+		node.type='text/css';
+		node.rel='stylesheet';
+		jsSelf.parentNode.insertBefore(node,jsSelf);
+		callback&&callback();
+		file.s=LOADED;
+		console.log('Load Css : '+name);
 		return;
 	}
 	
-	if(!script){
-		script=_files_[name]={handler:[callback?callback:null]};
-	}
-	
-
-	if(script.status==LOADED){
-		if(callback){
-			callback(name);
-		}
+	if(file.s==LOADED){
+		callback&&callback(name);
 		return;
 	}
 	
-	if(script.status==LOADING){
-		if(callback){
-			script.handler.push(callback);
-		}		
+	if(file.s==LOADING){
+		callback&&file.h.push(callback);
 		return;
 	}
 	
 
-	var node=document.createElement('script');
+	
+	node=doc.createElement('script');
 	node.src=src;
 	node.async=false;
+	
+	//加载超时处理
+	file.t=win.setTimeout(function(){
+		_config_.fail(name,src);
+	},_config_.timeout);
+	
 	node.onload=node.onreadystatechange=function(){
 		if(!this.readyState || this.readyState=='loaded' || this.readyState=='complete'){
 			
+			win.clearTimeout(file.t);
 			
-			//ie9 由于下面script=null ,会导致报错。
-			script.status=LOADED;
+			//ie9 script=null ,会导致报错。
+			file.s=LOADED;
 			
-			var handler=script.handler,
+			var handler=file.h,
 				fn;
 
 			while(handler.length>0){
 				fn=handler.shift();
-				if(fn){
-					fn(name);
-				}
+				fn&&fn(name);
 			}
 			
-			
 			node.load=node.onreadystatechange=null;
+			
+			console.log('Loaded : '+file.n);
 		}
 
 	}
 
 	jsSelf.parentNode.insertBefore(node,jsSelf);
-	script.status=LOADING;	
+	file.s=LOADING;	
 }
+
+
 
 //一个thread可能会多次调用此函数
 //因为包含某mod的meta文件加载前我们无法知道此mod是否依赖其他mod，
 //参数fromLoader 为真时 说明不是第一调用
 //来处理首次调用未能处理的mod (unfoundMod)
 function processThread(thread,fromLoader){
+	
+	console.groupCollapsed('Process Thread : ' +thread.id);
+	
 	var loadList=thread.f,
 		unfoundMod=thread.unfound,
 		list=fromLoader?unfoundMod:thread.mods,
 		mods=_mods_,
+		//存放已经处理过的文件或模块
 		processed={},
 		
-
+		
 		p=function(modName){
+			
 			if(!modName || processed[modName]){
 				return;
 			}
 			
+			console.log('Process Module : '+modName);
+
 			processed[modName]=true;
 			
 			//要加载的模块是一个meta文件，直接放入加载列表并返回
 			if(isFile(modName)){
 				//如果还没加载
-				if(!(_files_[modName]&&_files_[modName].status==LOADED)){
+				if(!(_files_[modName]&&_files_[modName].s==LOADED)){
 					loadList.push(modName);
 				}
 				return;
@@ -315,17 +341,15 @@ function processThread(thread,fromLoader){
 				file;
 			
 			if(!mod){
-				
 				file=searchFile(modName);
 
 				//防止meta对象中mods信息与文件中实际添加模块的信息不一致
 				//比如:用户添加文件 .addFile({'test.js',{mods:['a','b']}});
 				//但是test.js内只添加了模块a，没有b，这时候就会造成死循环，不断的加载test.js
-				if(_files_[file]&&_files_[file].status==LOADED){
+				if(!file || (_files_[file]&&_files_[file].status==LOADED)){
 					throw new Error('Can\'t found the module : '+modName);
-					return;
 				}
-			
+
 				if(file && !processed[file]){
 					loadList.push(file);
 					processed[file]=true;
@@ -341,6 +365,8 @@ function processThread(thread,fromLoader){
 
 	each(list,p);
 
+	console.info(loadList);
+	console.groupEnd();
 	//有需要加载的meta文件加载
 	//否则attach模块
 	if(loadList.length>0){
@@ -360,7 +386,6 @@ function loadThread(thread){
 	if(isAsync){
 		var list=thread.f=sortLoadList(thread , true),
 			flag=list.length,
-			
 			callback=function(){
 				if(--flag==0){
 					thread.f=[];
@@ -368,7 +393,7 @@ function loadThread(thread){
 					processThread(thread,true);
 				}
 			};
-			
+
 		each(list,function(item){
 			loadFile(item,callback);
 		});
@@ -389,7 +414,6 @@ function loadThread(thread){
 
 	};
 
-	//console.info(list);
 	loadGroup(list.shift(),callback);
 };
 
@@ -513,6 +537,10 @@ function attachMod(thread){
 	
 	
 	context._attach(ret);
+
+	console.groupCollapsed('Completed Thread: '+thread.id);
+	console.info(thread);
+	console.groupEnd();
 	
 	callback&&callback(context);
 	
@@ -540,9 +568,9 @@ proto={
 				_cidx:0,
 				
 				//把部分局部变量放出
-				mods:_mods_,
-				meta:_meta_,
-				thread:_thread_
+				_mods:_mods_,
+				_meta:_meta_,
+				_thread:_thread_
 			};
 		}
 		if(!this.Env){
@@ -588,8 +616,16 @@ proto={
 		return this;
 	},
 	
-	//加载js或者css文件详见loadFile
-	load:loadFile,
+	//加载js或者css文件
+	//参数可以meta文件名或者是url地址，此方法将忽略文件间的依赖关系
+	//并行加载所有文件
+	//.load('a.js','http://xx.xx/a.js');
+	load:function(){
+		var ar=[].slice.call(arguments,0);
+		each(ar,function(item){
+			loadFile(item)
+		});
+	},
 	
 	//使用单个或多个模块
 	//.use('mod1','mod2',callback)
@@ -615,7 +651,6 @@ proto={
 			f:[],
 			cx:this
 		};
-		
 		processThread(_thread_[threadId]);
 		
 	},
@@ -631,6 +666,10 @@ proto={
 				attached[item]=true;
 			}	
 		});
+	},
+	
+	config:function(key,value){
+		_config_[key]=value;
 	},
 
 	mix:mix,
