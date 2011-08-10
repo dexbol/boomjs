@@ -57,13 +57,13 @@ asyncTest('use module',1,function(C){
 asyncTest('add file',function(){
 
 	Boom.addFile({
-		'base.js':{fullpath:'base.js',mods:['util']},
-		'mA_mB_mC.js':{fullpath:'mA_mB_mC.js',requires:['base.js'],mods:['mA','mB','mC']},
-		'mD.js':{fullpath:'mD.js',requires:['base.js'],mods:['mD']},
-		'mE.js':{fullpath:'mE.js',requires:['base.js'],mods:['mE']},
-		'needCss.js':{fullpath:'needCss.js',requires:['a.css'],mods:['needCss']},
-		'a.css':{fullpath:'a.css'},
-		'timeout.js':{fullpath:'timeout.js'}
+		'base.js':{path:'base.js',mods:['util']},
+		'mA_mB_mC.js':{path:'mA_mB_mC.js',requires:['base.js'],mods:['mA','mB','mC']},
+		'mD.js':{path:'mD.js',requires:['base.js'],mods:['mD']},
+		'mE.js':{path:'mE.js',requires:['base.js'],mods:['mE']},
+		'needCss.js':{path:'needCss.js',requires:['a.css'],mods:['needCss']},
+		'a.css':{path:'a.css'},
+		'timeout.js':{path:'timeout.js'}
 	});
 
 	var meta=Boom.Env._meta;

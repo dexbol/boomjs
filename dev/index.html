@@ -13,12 +13,15 @@ pre{padding:10px;border:1px dashed #999999;}
 <script type="text/javascript" src="boom.js" data-boom-symbol="CN6"></script>
 <script type="text/javascript">
 
-
+Boom.config({
+	base:'http://git/boom/dev/',
+	timeout:2000
+});
 	Boom.addFile({
-		'base.js':{fullpath:'base.js',mods:['util']},
-		'mA_mB_mC.js':{fullpath:'mA_mB_mC.js',requires:['base.js'],mods:['mA','mB','mC']},
-		'mD.js':{fullpath:'mD.js',requires:['base.js'],mods:['mD']},
-		'mE.js':{fullpath:'mE.js',requires:['base.js'],mods:['mE']}
+		'base.js':{path:'base.js',mods:['util']},
+		'mA_mB_mC.js':{path:'mA_mB_mC.js',requires:['base.js'],mods:['mA','mB','mC']},
+		'mD.js':{path:'mD.js',requires:['base.js'],mods:['mD']},
+		'mE.js':{path:'mE.js',requires:['base.js'],mods:['mE']}
 	});
 
 

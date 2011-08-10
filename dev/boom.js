@@ -1,5 +1,5 @@
 /**@license
- * Boom v1.0 , a javascript loader and manager
+ * Boom v1.2 , a javascript loader and manager
  * 
  * MIT License
  * 
@@ -27,6 +27,7 @@ var LOADING=0,
 	
 var _config_={
 		timeout:6000,
+		base:'',
 		fail:function(name,src){
 			doc.title='✖ '+src+' Load Failed,Please Refresh';
 		}
@@ -34,11 +35,11 @@ var _config_={
 	//通过.addFile添加的meta文件
 	_meta_={
 	/*
-	'lib.php':{fullpath:'lib.php'},
-	'test1.php':{fullpath:'test1.php',requires:['test2.php'],mods:['t1-1','t1-2']},
-	'test2.php':{fullpath:'test2.php',requires:['test3.php'],mods:['t2-1','t2-2','t2-3']},
-	'test3.php':{fullpath:'test3.php',requires:['test4.php'],mods:['t3-1','t3-2']},
-	'test4.php':{fullpath:'test4.php',requires:[],mods:['t4-1','t4-2']}
+	'lib.php':{path:'lib.php'},
+	'test1.php':{path:'test1.php',requires:['test2.php'],mods:['t1-1','t1-2']},
+	'test2.php':{path:'test2.php',requires:['test3.php'],mods:['t2-1','t2-2','t2-3']},
+	'test3.php':{path:'test3.php',requires:['test4.php'],mods:['t3-1','t3-2']},
+	'test4.php':{path:'test4.php',requires:[],mods:['t4-1','t4-2']}
 	*/
 	},
 	//通过.add 添加的模块
@@ -228,18 +229,22 @@ function searchFile(modName){
 
 function loadFile(name,callback){
 	var metaFile=_meta_,
-		src=metaFile[name]?metaFile[name].fullpath:name,
+		src=metaFile[name]?metaFile[name].path:name,
 		type=src.substring(src.lastIndexOf('.')+1)=='css'?'css':'js',
 		file=_files_[name],
 		node;
 	
-
+	//src包含// 的不佳base url
+	src=src.indexOf('//')>-1?src:_config_.base+src;
+	
 	if(!file){
 		//简短属性名n:name,h:handler,s:status
 		file=_files_[name]={n:name,h:[callback?callback:null],s:-1};
 	}
 
 	//css文件不能回调 请求后立即callback并返回
+	//http://www.phpied.com/when-is-a-stylesheet-really-loaded/
+	//http://lifesinger.org/lab/2011/load-js-css/
 	if(type=='css'){
 		node=doc.createElement('link');
 		node.href=src;
@@ -349,11 +354,12 @@ function processThread(thread,fromLoader){
 				if(!file || (_files_[file]&&_files_[file].status==LOADED)){
 					throw new Error('Can\'t found the module : '+modName);
 				}
-
-				if(file && !processed[file]){
+				
+				unfoundMod.push(modName);
+				
+				if(!processed[file]){
 					loadList.push(file);
 					processed[file]=true;
-					unfoundMod.push(modName);
 				}
 				return;
 			}
@@ -599,7 +605,7 @@ proto={
 	},
 
 	//添加文件
-	//addFile('file-name',{fullpath:'test1.php',requires:['lib.php'],mods:['t1-1','t1-2']})
+	//addFile('file-name',{path:'test1.php',requires:['lib.php'],mods:['t1-1','t1-2']})
 	//addFile({'file-name':{...},'file-name-other':{...}})
 	addFile:function(name,info){
 		if(typeof name=='object'){
@@ -625,6 +631,7 @@ proto={
 		each(ar,function(item){
 			loadFile(item)
 		});
+		return this;
 	},
 	
 	//使用单个或多个模块
@@ -669,7 +676,12 @@ proto={
 	},
 	
 	config:function(key,value){
-		_config_[key]=value;
+		if(!value){
+			mix(_config_,key,true);
+		}
+		else{
+			_config_[key]=value;
+		}
 	},
 
 	mix:mix,
