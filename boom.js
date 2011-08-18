@@ -673,7 +673,7 @@ for(p in proto){
 
 Boom._init();
 
-win[symbol]=win.CN6=win.Boom=Boom;
+win[symbol]=win.CN6=Boom;
 
 
 })(window,document);
