@@ -1,5 +1,5 @@
 /**@license
- * Boom v1.2 , a javascript loader and manager
+ * Boom v1.3 , a javascript loader and manager
  * 
  * MIT License
  * 
@@ -14,10 +14,11 @@ var LOADING=0,
 	LOADED=1;
 	
 var _config_={
-		timeout:6000,
+		timeout:10000,
 		base:'',
+		debug:false,
 		fail:function(name,src){
-			doc.title='✖ '+src+' Load Failed,Please Refresh';
+			doc.title='✖ '+src+' Load Abortively,Please Refresh';
 		}
 	},
 	//通过.addFile添加的meta文件
@@ -185,6 +186,9 @@ function extend(r,s,px,sx){
 
 
 function isFile(name){
+	if(_mods_[name]){
+		return false;
+	}
 	var extend=name.substring(name.lastIndexOf('.')+1);
 	return extend=='js'||extend=='css';
 }
@@ -222,7 +226,7 @@ function loadFile(name,callback){
 		file=_files_[name],
 		node;
 	
-	//src包含// 的不佳base url
+	//src包含// 的不加base url
 	src=src.indexOf('//')>-1?src:_config_.base+src;
 	
 	if(!file){
@@ -673,8 +677,11 @@ for(p in proto){
 
 Boom._init();
 
-win[symbol]=win.CN6=Boom;
+win[symbol]=win.CN6=win.Boom=Boom;
 
+if(win.location.search.indexOf('debug')>-1||doc.cookie.indexOf('debug=')>-1){
+	_config_.debug=true;
+}
 
 })(window,document);
 
