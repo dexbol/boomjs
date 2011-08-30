@@ -1,5 +1,5 @@
 /**@license
- * Boom v1.3 , a javascript loader and manager
+ * Boom v1.4 , a javascript loader and manager
  * 
  * MIT License
  * 
@@ -14,7 +14,7 @@ var LOADING=0,
 	LOADED=1;
 	
 var _config_={
-		timeout:10000,
+		timeout:12000,
 		base:'',
 		debug:false,
 		fail:function(name,src){
@@ -286,9 +286,7 @@ function loadFile(name,callback){
 			}
 			
 			node.load=node.onreadystatechange=null;
-			
 				}
-
 	}
 
 	jsSelf.parentNode.insertBefore(node,jsSelf);
@@ -298,16 +296,16 @@ function loadFile(name,callback){
 
 
 //一个thread可能会多次调用此函数
-//因为包含某mod的meta文件加载前我们无法知道此mod是否依赖其他mod，
+//因为包含某mod的文件加载前我们无法知道此mod是否依赖其他mod，
 //参数fromLoader 为真时 说明不是第一调用
-//来处理首次调用未能处理的mod (unfoundMod)
+//需要处理首次调用未能处理的mod (unfoundMod)
 function processThread(thread,fromLoader){
 		
 	var loadList=thread.f,
 		unfoundMod=thread.unfound,
 		list=fromLoader?unfoundMod:thread.mods,
 		mods=_mods_,
-		//存放已经处理过的文件或模块
+		//存放已经处理过的模块
 		processed={},
 		
 		
@@ -320,7 +318,7 @@ function processThread(thread,fromLoader){
 		
 			processed[modName]=true;
 			
-			//要加载的模块是一个meta文件，直接放入加载列表并返回
+			//要加载的模块是一个文件，直接放入加载列表并返回
 			if(isFile(modName)){
 				//如果还没加载
 				if(!(_files_[modName]&&_files_[modName].s==LOADED)){
@@ -338,7 +336,7 @@ function processThread(thread,fromLoader){
 				//防止meta对象中mods信息与文件中实际添加模块的信息不一致
 				//比如:用户添加文件 .addFile({'test.js',{mods:['a','b']}});
 				//但是test.js内只添加了模块a，没有b，这时候就会造成死循环，不断的加载test.js
-				if(!file || (_files_[file]&&_files_[file].status==LOADED)){
+				if(!file || (_files_[file]&&_files_[file].s==LOADED)){
 					throw new Error('Can\'t found the module : '+modName);
 				}
 				
@@ -638,7 +636,7 @@ proto={
 			cx:this
 		};
 		processThread(_thread_[threadId]);
-		
+		return this;
 	},
 
 	_attach:function(ar){
