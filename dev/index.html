@@ -17,6 +17,8 @@ Boom.config({
 	base:'http://git/boom/dev/',
 	timeout:2000
 });
+
+
 	Boom.addFile({
 		'base.js':{path:'base.js',mods:['util']},
 		'mA_mB_mC.js':{path:'mA_mB_mC.js',requires:['base.js'],mods:['mA','mB','mC']},
@@ -32,6 +34,7 @@ function output(msg){
 	area.appendChild(p);
 }
 
+Boom.use('mD');
 
 </script>
 </head>

@@ -64,7 +64,7 @@ asyncTest('add file',function(){
 		'mE.js':{path:'mE.js',requires:['base.js'],mods:['mE']},
 		'needCss.js':{path:'needCss.js',requires:['a.css'],mods:['needCss']},
 		'a.css':{path:'a.css'},
-		'timeout.js':{path:'timeout.js'}
+		'timeout.js':{path:'timeout.php'}
 	});
 
 	var meta=Boom.Env._meta;
@@ -116,10 +116,32 @@ asyncTest('load timeout',function(){
 	Boom.load('timeout.js');
 });
 
+asyncTest('preload files parallelly then use module',2,function(){
+	Boom.config({
+		fail:function(){},
+		timeout:6000
+	});
+	Boom.addFile('T1.js',{path:'T1.php'});
+	Boom.addFile('T2.js',{path:'T2.php',requires:['T1.js'],mods:['T2']});
+	Boom.load('T2.js',function(){
+		ok(Boom.Env._mods['T2'],'T2.js loaded')
+		Boom.use('T2',function(C){
+			ok(C.result==10,'success');
+			start();
+		});
+	});
+	
+
+
+});
+
 asyncTest('load muti file',2,function(){
 	var FILE_1,FILE_2;
 	Boom.load('f1.js','f2.js');
 });
+
+
+
 
 
 

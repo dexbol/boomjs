@@ -4,8 +4,12 @@
 	header('Cache-Control','max-age=120');	
 	header("Content-Type", "application/x-javascript");
 	//usleep(80000);
-	sleep(2);
+	//sleep(2);
 ?>
 */
-start();
-ok(true,'f2.js loaded');
+
+CN6.add('T2',function(C){
+	C.result=T1+8;
+});
+
+

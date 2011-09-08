@@ -7,7 +7,6 @@
 	sleep(2);
 ?>
 */
-
 start();
 ok(true,'f2.js loaded');
 

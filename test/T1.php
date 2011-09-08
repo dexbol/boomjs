@@ -7,5 +7,6 @@
 	sleep(2);
 ?>
 */
-start();
-ok(true,'f2.js loaded');
+
+var T1=2;
+

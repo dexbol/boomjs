@@ -1,5 +1,5 @@
 /**@license
- * Boom v1.4 , a javascript loader and manager
+ * Boom v1.6 , a javascript loader and manager
  * 
  * MIT License
  * 
@@ -286,9 +286,10 @@ function loadFile(name,callback){
 			}
 			
 			node.load=node.onreadystatechange=null;
+			(!_config_.debug)&&node.parentNode.removeChild(node);
 				}
 	}
-
+	
 	jsSelf.parentNode.insertBefore(node,jsSelf);
 	file.s=LOADING;	
 }
@@ -573,10 +574,20 @@ proto={
 	//添加模块
 	//add('modelName',function(C){},{requires:[],use:true});
 	add:function(name,fn,details){
+		details=details||{};
+		details.requires=details.requires||[];
+
+		var file=searchFile(name),
+			meta=_meta_;
+											
+		if(file&&meta[file]&&meta[file].requires){
+			details.requires=details.requires.concat(meta[file].requires);
+		}
+
 		_mods_[name]={
 			name:name,
 			fn:fn,
-			details:details||{}
+			details:details
 		};
 		
 		return this;
@@ -603,10 +614,16 @@ proto={
 	//参数可以meta文件名或者是url地址，此方法将忽略文件间的依赖关系
 	//并行加载所有文件
 	//.load('a.js','http://xx.xx/a.js');
+	//回调函数只供内部调用
 	load:function(){
-		var ar=[].slice.call(arguments,0);
-		each(ar,function(item){
-			loadFile(item)
+		var args=Array.prototype.slice.call(arguments,0),
+			len=args.length,
+			callback;
+
+		callback=(typeof args[len-1]=='function')?args.pop():null;
+		
+		each(args,function(item){
+			loadFile(item,callback)
 		});
 		return this;
 	},
