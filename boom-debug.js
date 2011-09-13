@@ -1,5 +1,5 @@
 /**@license
- * Boom v1.6 , a javascript loader and manager
+ * Boom v2.0 , a javascript loader and manager
  * 
  * MIT License
  * 
@@ -12,9 +12,10 @@ if (!(window.console&&window.console.group)) {
   (function() {
     var names = ["log", "debug", "info", "warn", "error", "assert", "dir", "dirxml",
  	 "group", "groupCollapsed","groupEnd", "time", "timeEnd", "count", "trace", "profile", "profileEnd"];
+ 	window.oldconsole=window.console
     window.console = {};
     for (var i = 0; i < names.length; ++i) {
-      window.console[names[i]] = function() {};
+      window.console[names[i]] = window.oldconsole[names[i]]||function() {};
     }
   }());
 }
@@ -30,7 +31,7 @@ var _config_={
 		base:'',
 		debug:false,
 		fail:function(name,src){
-			doc.title='✖ '+src+' Load Abortively,Please Refresh';
+			//doc.title='✖ '+src+' Load Abortively,Please Refresh';
 		}
 	},
 	//通过.addFile添加的meta文件
@@ -603,7 +604,15 @@ proto={
 
 		var file=searchFile(name),
 			meta=_meta_;
-											
+		
+		//为了避免定义模块的文件已经下载完成，但该文件所需文件却未完成的情况
+		//比如 2个文件Boom.addFile({'jquery.js':{...},'a.js':{requires:['jquery.js']...}});
+		//文件a.js 内定义 Boom.add('mod',function(){}); a.js 需要jquery.js
+		//为了更快加载在文件头部: Boom.load('jquery.js','a.js');
+		//a.js由于某种原因迅速下载完毕，但jquery.js长时间未加载
+		//文件底部使用模块 Boom.use('mod',function(){}); 
+		//此时a.js已经下载完毕 直接使用mod ,但mod中使用了jquery对象，然后报错...
+		//所以...
 		if(file&&meta[file]&&meta[file].requires){
 			details.requires=details.requires.concat(meta[file].requires);
 		}
@@ -639,8 +648,8 @@ proto={
 	//参数可以meta文件名或者是url地址，此方法将忽略文件间的依赖关系
 	//并行加载所有文件
 	//.load('a.js','http://xx.xx/a.js');
-	//回调函数只供内部调用
 	load:function(){
+//for debug
 		var args=Array.prototype.slice.call(arguments,0),
 			len=args.length,
 			callback;
@@ -651,6 +660,13 @@ proto={
 			loadFile(item,callback)
 		});
 		return this;
+//for debug end
+
+		var ar=[].slice.call(arguments,0);
+		each(ar,function(item){
+			loadFile(item)
+		});
+		return this;
 	},
 	
 	//使用单个或多个模块
@@ -658,7 +674,7 @@ proto={
 	//或者加载一个或多个文件！
 	//.use('a.js','b.js',callback)
 	use:function(){
-		var args=Array.prototype.slice.call(arguments,0),
+		var args=[].slice.call(arguments,0),
 			len=args.length,
 			threadId=this.guid(),
 			callback;
