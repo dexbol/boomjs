@@ -1,10 +1,7 @@
 /**@license
- * Boom v2.0 , a javascript loader and manager
- * 
+ * Boom v2.2 , a javascript loader and manager
  * MIT License
- * 
  * http://dexbol.github.com/boom/
- * 
  */
 
 //for debug
@@ -231,7 +228,6 @@ function searchFile(modName){
 
 
 
-
 function loadFile(name,callback){
 	var metaFile=_meta_,
 		src=metaFile[name]?metaFile[name].path:name,
@@ -240,7 +236,7 @@ function loadFile(name,callback){
 		node;
 	
 	//src包含// 的不加base url
-	src=src.indexOf('//')>-1?src:_config_.base+src;
+	src=(src.charAt(0)=='/'||src.indexOf('//')>-1)?src:_config_.base+src;
 	
 	if(!file){
 		//简短属性名n:name,h:handler,s:status
