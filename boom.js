@@ -1,5 +1,5 @@
 /**@license
- * Boom v2.2 , a javascript loader and manager
+ * Boom v2.3 , a javascript loader and manager
  * MIT License
  * http://dexbol.github.com/boom/
  */
@@ -14,6 +14,7 @@ var _config_={
 		timeout:12000,
 		base:'',
 		debug:false,
+		util:[],
 		fail:function(name,src){
 			//doc.title='✖ '+src+' Load Abortively,Please Refresh';
 		}
@@ -52,7 +53,7 @@ var proto,
 	isAsync=doc.createElement("script").async === true ||
 					"MozAppearance" in doc.documentElement.style ||
 					window.opera;
-	//isAsync=false;
+	isAsync=false;
 
 
 //很弱的对象检测
@@ -267,7 +268,7 @@ function loadFile(name,callback){
 	
 	node.onload=node.onreadystatechange=function(){
 		if(!this.readyState || this.readyState=='loaded' || this.readyState=='complete'){
-			
+					
 			win.clearTimeout(file.t);
 			
 			//ie9 script=null ,会导致报错。
@@ -283,7 +284,7 @@ function loadFile(name,callback){
 			
 			node.load=node.onreadystatechange=null;
 			(!_config_.debug)&&node.parentNode.removeChild(node);
-				}
+		}
 	}
 	
 	jsSelf.parentNode.insertBefore(node,jsSelf);
@@ -402,13 +403,10 @@ function loadThread(thread){
 	loadGroup(list.shift(),callback);
 };
 
-
-function sortLoadList(thread,isAsync){
-	
-	var list=thread.f,
+function fileDepend(files){
+	var ret=[],
 		processed={},
-		ret=[],
-		
+				
 	p=function(f){
 		if(processed[f]){
 			return;
@@ -421,35 +419,34 @@ function sortLoadList(thread,isAsync){
 			each(fobj.requires,p);
 		}
 		
-		ret.push(f);
+		ret.push(f);		
 	}
+	each(files,p);
+	
+	return ret;
+}
+
+function sortLoadList(thread,isAsync){
+	
+	var list=thread.f;
 	
 	if(isAsync){
-		each(list,p);
-		return ret
+		return fileDepend(list);
 	}
 	
 	var maxLen=0,
-		tempAr=[],
-		groupAr=[];
+		ret=[],
+		groupAr=[],
+		tempAr,
+		processed;
 			
 	each(list,function(item){
-		//now,ret had processed files
-		p(item);
-		processed={};
-		//copy ret to tempAr
-		each(ret,function(item){
-			tempAr.push(item);
-		});
+		var ret=fileDepend([item]);
 		maxLen=Math.max(maxLen,ret.length);
 		//save result to groupAr
-		groupAr.push(tempAr);
-		//reset ret and tempAr
-		ret=[];
-		tempAr=[];
+		groupAr.push(ret);
 	});
 	
-	ret=[];
 	
 	while(--maxLen>=0){
 		tempAr=[];
@@ -464,7 +461,7 @@ function sortLoadList(thread,isAsync){
 		});
 		ret.push(tempAr);
 	}
-
+	
 	return ret;
 	
 
@@ -571,22 +568,13 @@ proto={
 	//add('modelName',function(C){},{requires:[],use:true});
 	add:function(name,fn,details){
 		details=details||{};
-		details.requires=details.requires||[];
+		requires=details.requires||[];
 
 		var file=searchFile(name),
-			meta=_meta_;
-		
-		//为了避免定义模块的文件已经下载完成，但该文件所需文件却未完成的情况
-		//比如 2个文件Boom.addFile({'jquery.js':{...},'a.js':{requires:['jquery.js']...}});
-		//文件a.js 内定义 Boom.add('mod',function(){}); a.js 需要jquery.js
-		//为了更快加载在文件头部: Boom.load('jquery.js','a.js');
-		//a.js由于某种原因迅速下载完毕，但jquery.js长时间未加载
-		//文件底部使用模块 Boom.use('mod',function(){}); 
-		//此时a.js已经下载完毕 直接使用mod ,但mod中使用了jquery对象，然后报错...
-		//所以...
-		if(file&&meta[file]&&meta[file].requires){
-			details.requires=details.requires.concat(meta[file].requires);
-		}
+			depend=file?fileDepend([file]):[];
+			
+		requires=requires.concat(depend,_config_.util);
+		details.requires=requires;
 
 		_mods_[name]={
 			name:name,
