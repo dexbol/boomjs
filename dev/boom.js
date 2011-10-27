@@ -1,15 +1,11 @@
-/**@license
- * Boom v2.3 , a javascript loader and manager
- * MIT License
- * http://dexbol.github.com/boom/
- */
+/**@license Boom.js v2.5 , a javascript loader and manager | MIT License  */
 
 //for debug
 if (!(window.console&&window.console.group)) {
   (function() {
     var names = ["log", "debug", "info", "warn", "error", "assert", "dir", "dirxml",
  	 "group", "groupCollapsed","groupEnd", "time", "timeEnd", "count", "trace", "profile", "profileEnd"];
- 	window.oldconsole=window.console
+ 	window.oldconsole=window.console||{};
     window.console = {};
     for (var i = 0; i < names.length; ++i) {
       window.console[names[i]] = window.oldconsole[names[i]]||function() {};
@@ -66,7 +62,7 @@ var proto,
 	isAsync=doc.createElement("script").async === true ||
 					"MozAppearance" in doc.documentElement.style ||
 					window.opera;
-	isAsync=false;
+	//isAsync=false;
 
 
 //很弱的对象检测
@@ -353,7 +349,7 @@ function processThread(thread,fromLoader){
 				//比如:用户添加文件 .addFile({'test.js',{mods:['a','b']}});
 				//但是test.js内只添加了模块a，没有b，这时候就会造成死循环，不断的加载test.js
 				if(!file || (_files_[file]&&_files_[file].s==LOADED)){
-					throw new Error('Can\'t found the module : '+modName);
+					throw 'Can\'t found the module : '+modName;
 				}
 				
 				unfoundMod.push(modName);
@@ -567,7 +563,7 @@ proto={
 			Boom.Env={
 				_attached:{},
 				
-				_guidp:'BOOM-',
+				_guidp:'BOOM',
 				_cidx:0,
 				
 				//把部分局部变量放出
@@ -692,6 +688,31 @@ proto={
 				attached[item]=true;
 			}	
 		});
+	},
+	
+	//给Boom注册方法或属性
+	//Boom.register('people.name',100);
+	//Boom.people.name===100 ture;
+	register:function(ns,value){
+		var obj=this,
+			path=ns.split('.'),
+			i=0,
+			len=path.length,
+			p;
+						
+		for(;i<len;i++){
+			p=path[i];
+			
+			if(i==len-1){
+				if(obj[p]){
+					throw 'register has failed['+ns+']';
+				}
+				obj[p]=typeof value == 'function'?value.call(this):value
+			}
+			obj[p]=obj[p]||{};
+			obj=obj[p];
+		}
+		return obj;
 	},
 	
 	config:function(key,value){
