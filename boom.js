@@ -1,4 +1,4 @@
-/**@license Boom.js v2.5 , a javascript loader and manager | MIT License  */
+/**@license Boom.js v2.6 , a javascript loader and manager | MIT License  */
 
 
 (function(win,doc){
@@ -669,7 +669,7 @@ proto={
 				if(obj[p]){
 					throw 'register has failed['+ns+']';
 				}
-				obj[p]=typeof value == 'function'?value.call(this):value
+				obj[p]=value;
 			}
 			obj[p]=obj[p]||{};
 			obj=obj[p];
