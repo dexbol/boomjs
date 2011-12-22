@@ -1,7 +1,9 @@
 /**@license Boom.js v2.6 , a javascript loader and manager | MIT License  */
 
 
-(function(win,doc){
+(function(){
+var win=this;
+var doc=win.document;
 
 var LOADING=0,
 	LOADED=1;
@@ -700,13 +702,13 @@ for(p in proto){
 
 Boom._init();
 
-win[symbol]=win.CN6=win.Boom=Boom;
+win[symbol]=win.CN6=Boom;
 
 if(win.location.search.indexOf('debug')>-1||doc.cookie.indexOf('debug=')>-1){
 	_config_.debug=true;
 }
 
-})(window,document);
+})();
 
 
 
