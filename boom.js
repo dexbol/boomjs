@@ -712,7 +712,15 @@ if(win.location.search.indexOf('debug')>-1||doc.cookie.indexOf('debug=')>-1){
 
 
 
-
+/**
+ * TODO:
+ * 
+ * 精简mix
+ * 
+ * loadRow  parallel load
+ * loadColumn one by one load
+ * 
+ */
 
 
 
