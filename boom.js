@@ -1,12 +1,12 @@
-/**@license Boom.js v2.6 , a javascript loader and manager | MIT License  */
+/**@license Boom.js v3.0 , a javascript loader and manager | MIT License  */
 
 
 (function(){
 var win=this;
 var doc=win.document;
 
-var LOADING=0,
-	LOADED=1;
+var LOADING=0;
+var	LOADED=1;
 	
 var _config_={
 		timeout:12000,
@@ -16,9 +16,9 @@ var _config_={
 		fail:function(name,src){
 			//doc.title='✖ '+src+' Load Abortively,Please Refresh';
 		}
-	},
-	//通过.addFile添加的meta文件
-	_meta_={
+	};
+//通过.addFile添加的meta文件
+var	_meta_={
 	/*
 	'lib.php':{path:'lib.php'},
 	'test1.php':{path:'test1.php',requires:['test2.php'],mods:['t1-1','t1-2']},
@@ -26,40 +26,34 @@ var _config_={
 	'test3.php':{path:'test3.php',requires:['test4.php'],mods:['t3-1','t3-2']},
 	'test4.php':{path:'test4.php',requires:[],mods:['t4-1','t4-2']}
 	*/
-	},
-	//通过.add 添加的模块
-	_mods_={}, 
-	//存贮加载文件的状态 handler等
-	_files_={},
-	_thread_={};
+	};
+//通过.add 添加的模块
+var	_mods_={};
+//存贮加载文件的状态 handler等
+var	_files_={};
+var	_thread_={};
 
 	
-var proto,
+var proto;
 
-	//the boom.js , tech from Do.js v2 
-	jsSelf=(function(){
+//the boom.js , tech from Do.js v2 
+var	jsSelf=(function(){
 		var scripts=doc.getElementsByTagName('script');
 		return scripts[scripts.length-1];
-	})(),
+	})();
+
+var	symbol=jsSelf.getAttribute('data-boom-symbol')||'Boom';
 	
-	symbol=jsSelf.getAttribute('data-boom-symbol')||'Boom',
-	
-	//firefox 和 opera 使用script dom 加载js 可以实现并发加载 按顺序执行
-	//所以这两个浏览器不用一个一个的按顺序添加scriot dom，不管依赖关系 一律并发下载
-	//Firefox 4 开始 script.async默认属性为ture ，添加时要改成false 否则不能按顺序执行
-	//tech from headjs
-	isAsync=doc.createElement("script").async === true ||
-					"MozAppearance" in doc.documentElement.style ||
-					window.opera;
-	//isAsync=false;
+/**
+ * @see http://labjs.com/documentation.php
+ * @see http://wiki.whatwg.org/wiki/Dynamic_Script_Execution_Order
+ * @see http://hsivonen.iki.fi/script-execution/
+ */
+var	ordered=doc.createElement("script").async === true;
 
 
-//很弱的对象检测
 function isObject(o){
-	if(!o){
-		return false;
-	}
-	return Object.prototype.toString.call(o)=='[object Object]';
+	return !!(o&&Object.prototype.toString.call(o)=='[object Object]');
 }
 
 function each(ar,fn){
@@ -74,29 +68,7 @@ function each(ar,fn){
 	}
 }
 
-//基本的对象操作 from YUI 3
-//当使用类似jquery这种非OO的js框架时 ， 可以提供最基本的OOP
 function mix(r, s, ov, wl, mode, merge) {
-    if (!s||!r) {
-        return r || this;
-    }
-
-    if (mode) {
-        switch (mode) {
-            case 1: // proto to proto
-                return mix(r.prototype, s.prototype, ov, wl, 0, merge);
-            case 2: // object to object and proto to proto
-                mix(r.prototype, s.prototype, ov, wl, 0, merge);
-                break; // pass through 
-            case 3: // proto to static
-                return mix(r, s.prototype, ov, wl, 0, merge);
-            case 4: // static to proto
-                return mix(r.prototype, s, ov, wl, 0, merge);
-            default:  // object to object is what happens below
-        }
-    }
-
-    // Maybe don't even need this wl && wl.length check anymore??
     var i, l, p;
 
     if (wl && wl.length) {
@@ -134,6 +106,8 @@ function mix(r, s, ov, wl, mode, merge) {
     
     }
     return r;
+	
+	
 }
 
 function merge() {
@@ -719,6 +693,22 @@ if(win.location.search.indexOf('debug')>-1||doc.cookie.indexOf('debug=')>-1){
  * 
  * loadRow  parallel load
  * loadColumn one by one load
+ * 
+ * 
+ * 什么时候只是用loadRow
+ * 
+ * 支持动态加载按数据执行的浏览器 ： firefox opera
+ * 其他浏览器 meta对象有mods属性，说明文件内只包含模块定义代码，下载执行不依赖除boom之外的文件
+ * 
+ * 
+ * 什么时候用loadColumn
+ * 
+ * 非支持动态加载按顺序执行的浏览器 并且 meta对象内没有mods属性
+ * 
+ * 
+ * 混用
+ * 
+ * 
  * 
  */
 
