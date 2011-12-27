@@ -50,7 +50,7 @@ asyncTest('use module',1,function(C){
 	},{requires:['base']});
 
 	Boom.use('extend');
-	start()
+	start();
 });
 
 
@@ -71,12 +71,21 @@ asyncTest('add file',function(){
 	ok(meta.hasOwnProperty('base.js')&&
 	meta.hasOwnProperty('mA_mB_mC.js'),'add file success');
 
-	setTimeout(start,100);
+	start();
 
 });
 
 
 asyncTest('use file',1,function(){
+	Boom.addFile({
+		'base.js':{path:'base.js'},
+		'mA_mB_mC.js':{path:'mA_mB_mC.js',requires:['base.js'],mods:['mA','mB','mC']},
+		'mD.js':{path:'mD.js',requires:['base.js']},
+		'mE.js':{path:'mE.js',requires:['base.js'],mods:['mE']},
+		'needCss.js':{path:'needCss.js',requires:['a.css'],mods:['needCss']},
+		'a.css':{path:'a.css'},
+		'timeout.js':{path:'timeout.php'}
+	});
 	Boom.use('mD.js',function(){
 		ok(F_base&&F_mD,'use file success');
 		start();
@@ -123,16 +132,13 @@ asyncTest('preload files parallelly then use module',2,function(){
 	});
 	Boom.addFile('T1.js',{path:'T1.php'});
 	Boom.addFile('T2.js',{path:'T2.php',requires:['T1.js'],mods:['T2']});
-	Boom.load('T2.js',function(){
+	Boom.use('T2.js',function(){
 		ok(Boom.Env._mods['T2'],'T2.js loaded')
 		Boom.use('T2',function(C){
 			ok(C.result==10,'success');
 			start();
 		});
 	});
-	
-
-
 });
 
 asyncTest('load muti file',2,function(){

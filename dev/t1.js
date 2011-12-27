@@ -9,13 +9,6 @@
 */
 
 
-CN6.add('mD',function(C){
-	C.mD=true;
-});
+var t1='t1';
 
 
-
-var F_mD;
-if(F_base){
-	F_mD=true;
-}

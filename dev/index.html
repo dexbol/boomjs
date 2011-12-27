@@ -13,18 +13,19 @@ pre{padding:10px;border:1px dashed #999999;}
 <script type="text/javascript" src="boom.js" data-boom-symbol="CN6"></script>
 <script type="text/javascript">
 
-Boom.config({
+CN6.config({
 	base:'http://git/boom/dev/',
-	timeout:2000
+	timeout:2000,
+	debug:true
 });
 
 
-	Boom.addFile({
-		'base.js':{path:'base.js',mods:['util']},
-		'mA_mB_mC.js':{path:'mA_mB_mC.js',requires:['base.js'],mods:['mA','mB','mC']},
-		'mD.js':{path:'mD.js',requires:['base.js'],mods:['mD']},
-		'mE.js':{path:'mE.js',requires:['base.js'],mods:['mE']}
-	});
+CN6.addFile({
+	'base.js':{path:'base.js',mods:['util']},
+	'mA_mB_mC.js':{path:'mA_mB_mC.js',requires:['base.js'],mods:['mA','mB','mC']},
+	'mD.js':{path:'mD.js',requires:['base.js'],mods:['mD']},
+	'mE.js':{path:'mE.js',requires:['base.js'],mods:['mE']}
+});
 
 
 function output(msg){
@@ -34,8 +35,10 @@ function output(msg){
 	area.appendChild(p);
 }
 
-Boom.use('mD');
 
+CN6.use('t1.js','t2.js',function(){
+
+});
 </script>
 </head>
 <body>
