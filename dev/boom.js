@@ -1,4 +1,4 @@
-/**@license Boom.js v3.0 , a javascript loader and manager | MIT License  */
+/**@license Boom.js v4.0 , a javascript loader and manager | MIT License  */
 //for debug
 if (!(window.console&&window.console.group)) {
   (function() {
@@ -59,7 +59,7 @@ var	symbol=jsSelf.getAttribute('data-boom-symbol')||'Boom';
  */
 var	ordered=doc.createElement("script").async === true;
 //var ordered=false;
-var rFiletype=/\.(js|css|php)(\?|$)/;
+var rFiletype=/\.(\w+)(\?|$)/;
 var rFullpath=/^(\/|http)/;
 
 
@@ -148,7 +148,7 @@ function extend(r,s,px,sx){
 
 
 function isFile(name){
-	return !!(!_mods_[name]&&rFiletype.test(name));
+	return !!(!_mods_[name]&&rFiletype.test(name)||_meta_[name]);
 }
 
 function searchFile(modName){
@@ -273,7 +273,7 @@ function loadFile(name,callback){
 	
 	node.onload=node.onreadystatechange=function(){
 		if(!this.readyState || this.readyState=='loaded' || this.readyState=='complete'){
-					
+			console.log('Loaded : '+name);
 			win.clearTimeout(file.t);
 			file.s=LOADED;
 			
@@ -285,7 +285,6 @@ function loadFile(name,callback){
 				fn&&fn(name);
 			}
 			
-			console.log('Loaded : '+name);
 			this.load=this.onreadystatechange=null;
 			!_config_.debug && node.parentNode.removeChild(node);
 			
@@ -336,7 +335,6 @@ function processThread(thread,fromLoader){
 				
 				lost.push(modName);
 				
-				//ignore requres each other
 				if(!processed[file]){
 					loadList.push(file);
 					processed[file]=true;
@@ -448,6 +446,35 @@ function attachMod(thread){
 	delete _thread_[thread.id];
 }
 
+//addFile('file-name',{path:'test1.php',requires:['lib.php'],mods:['t1-1','t1-2']})
+//addFile({'file-name':{...},'file-name-other':{...}})
+function addFile(name,info){
+	if(isObject(name)){
+		for(var p in name){
+			if(name.hasOwnProperty(p)){
+				addFile(p,name[p]);
+			}
+		}
+	}
+	else{
+		_meta_[name]=info;	
+	}
+}
+
+function addMod(name,fn,details){
+	var oq;
+	details=details||{};
+	oq=details.requires||[];
+	details.requires=oq.concat(_config_.util);
+	
+	_mods_[name]={
+		name:name,
+		fn:fn,
+		details:details
+	};
+}
+
+
 function Boom(){
 	var boom=this;
 	if(! boom instanceof Boom){
@@ -479,35 +506,19 @@ proto={
 		return 'B'+(++Boom.Env._cidx).toString(36);
 	},
 
-	//add('modelName',function(C){},{requires:[]});
-	add:function(name,fn,details){
-		var oq=details&&details.requires?details.requires:[];
-		details=details||{};
-		details.requires=oq.concat(_config_.util);
+	//add module or file
+	add:function(){
+		var args=[].splice.call(arguments,0);
 		
-		_mods_[name]={
-			name:name,
-			fn:fn,
-			details:details
-		};
-		
-		return this;
-	},
-
-	//addFile('file-name',{path:'test1.php',requires:['lib.php'],mods:['t1-1','t1-2']})
-	//addFile({'file-name':{...},'file-name-other':{...}})
-	addFile:function(name,info){
-		if(isObject(name)){
-			for(var p in name){
-				if(name.hasOwnProperty(p)){
-					this.addFile(p,name[p]);
-				}
-			}
+		if(args.length==1&&isObject(args[0])){
+			addFile(args[0]);
+		}
+		else if(typeof args[1]=='function'){
+			addMod.apply(this,args);
 		}
 		else{
-			_meta_[name]=info;	
+			addFile.apply(this,args);
 		}
-		return this;
 	},
 	
 	//.load('a.js','http://xx.xx/a.js');
@@ -591,9 +602,7 @@ proto={
 
 Boom.prototype=proto;
 
-for(p in proto){
-	Boom[p]=proto[p];
-}
+mix(Boom,proto);
 
 Boom._init();
 
@@ -604,8 +613,6 @@ if(win.location.search.indexOf('debug')>-1||doc.cookie.indexOf('debug=')>-1){
 }
 
 })();
-
-
 
 
 

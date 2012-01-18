@@ -40,14 +40,14 @@ asyncTest('add module',3,function(){
 
 
 asyncTest('use module',1,function(C){
-	Boom.add('base',function(C){
+	Boom.add('test1',function(C){
 		C.base=function(){
 			
 		}
 	});
 	Boom.add('extend',function(C){
 		ok(typeof C.base =='function','require modlue success');
-	},{requires:['base']});
+	},{requires:['test1']});
 
 	Boom.use('extend');
 	start();
@@ -57,19 +57,19 @@ asyncTest('use module',1,function(C){
 
 asyncTest('add file',function(){
 
-	Boom.addFile({
-		'base.js':{path:'base.js',mods:['util']},
-		'mA_mB_mC.js':{path:'mA_mB_mC.js',requires:['base.js'],mods:['mA','mB','mC']},
-		'mD.js':{path:'mD.js',requires:['base.js'],mods:['mD']},
-		'mE.js':{path:'mE.js',requires:['base.js'],mods:['mE']},
+	Boom.add({
+		'base':{path:'base.js',mods:['util']},
+		'mA_mB_mC':{path:'mA_mB_mC.js',requires:['base'],mods:['mA','mB','mC']},
+		'mD.js':{path:'mD.js',requires:['base'],mods:['mD']},
+		'mE.js':{path:'mE.js',requires:['base'],mods:['mE']},
 		'needCss.js':{path:'needCss.js',requires:['a.css'],mods:['needCss']},
 		'a.css':{path:'a.css'},
 		'timeout.js':{path:'timeout.php'}
 	});
 
 	var meta=Boom.Env._meta;
-	ok(meta.hasOwnProperty('base.js')&&
-	meta.hasOwnProperty('mA_mB_mC.js'),'add file success');
+	ok(meta.hasOwnProperty('base')&&
+	meta.hasOwnProperty('mA_mB_mC'),'add file success');
 
 	start();
 
@@ -77,11 +77,11 @@ asyncTest('add file',function(){
 
 
 asyncTest('use file',1,function(){
-	Boom.addFile({
-		'base.js':{path:'base.js'},
-		'mA_mB_mC.js':{path:'mA_mB_mC.js',requires:['base.js'],mods:['mA','mB','mC']},
-		'mD.js':{path:'mD.js',requires:['base.js']},
-		'mE.js':{path:'mE.js',requires:['base.js'],mods:['mE']},
+	Boom.add({
+		'base':{path:'base.js',mods:['util']},
+		'mA_mB_mC':{path:'mA_mB_mC.js',requires:['base'],mods:['mA','mB','mC']},
+		'mD.js':{path:'mD.js',requires:['base'],mods:['mD']},
+		'mE.js':{path:'mE.js',requires:['base'],mods:['mE']},
 		'needCss.js':{path:'needCss.js',requires:['a.css'],mods:['needCss']},
 		'a.css':{path:'a.css'},
 		'timeout.js':{path:'timeout.php'}
@@ -130,8 +130,8 @@ asyncTest('preload files parallelly then use module',2,function(){
 		fail:function(){},
 		timeout:6000
 	});
-	Boom.addFile('T1.js',{path:'T1.php'});
-	Boom.addFile('T2.js',{path:'T2.php',requires:['T1.js'],mods:['T2']});
+	Boom.add('T1.js',{path:'T1.php'});
+	Boom.add('T2.js',{path:'T2.php',requires:['T1.js'],mods:['T2']});
 	Boom.use('T2.js',function(){
 		ok(Boom.Env._mods['T2'],'T2.js loaded')
 		Boom.use('T2',function(C){

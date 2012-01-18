@@ -20,11 +20,11 @@ CN6.config({
 });
 
 
-CN6.addFile({
-	'base.js':{path:'base.js',mods:['util']},
-	'mA_mB_mC.js':{path:'mA_mB_mC.js',requires:['base.js'],mods:['mA','mB','mC']},
-	'mD.js':{path:'mD.js',requires:['base.js'],mods:['mD']},
-	'mE.js':{path:'mE.js',requires:['base.js'],mods:['mE']}
+CN6.add({
+	'base':{path:'base.js',mods:['util']},
+	'mA_mB_mC':{path:'mA_mB_mC.js',requires:['base'],mods:['mA','mB','mC']},
+	'mD.js':{path:'mD.js',requires:['base'],mods:['mD']},
+	'mE.js':{path:'mE.js',requires:['base'],mods:['mE']}
 });
 
 
@@ -36,9 +36,7 @@ function output(msg){
 }
 
 
-CN6.use('t1.js','t2.js',function(){
-
-});
+CN6.use('mD');
 </script>
 </head>
 <body>
