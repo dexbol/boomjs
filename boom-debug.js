@@ -1,4 +1,4 @@
-/**@license Boom.js v3.0 , a javascript loader and manager | MIT License  */
+/**@license Boom.js v4.1 , a javascript loader and manager | MIT License  */
 //for debug
 if (!(window.console&&window.console.group)) {
   (function() {
@@ -9,6 +9,32 @@ if (!(window.console&&window.console.group)) {
     for (var i = 0; i < names.length; ++i) {
       window.console[names[i]] = window.oldconsole[names[i]]||function() {};
     }
+	
+	var mlist=[];
+	var s=false;
+	console.log=function(m){
+		if(s){
+			var p=document.createElement('p');
+			p.innerHTML=m;
+			document.getElementById('MRMRM').appendChild(p);
+		}
+		mlist.push('<p>'+m+'</p>');
+	}
+	
+	console.groupCollapsed=function(m){
+		m='-----------'+m+'-------------';
+		console.log(m);
+	}
+	
+	window.attachEvent('onload',function(){
+		var body=document.body;
+		var div=document.createElement('div');
+		div.innerHTML=mlist.join('');
+		div.id="MRMRM"
+		body.insertBefore(div,body.firstChild)
+		s=true;
+	})
+	
   }());
 }
 
@@ -59,8 +85,9 @@ var	symbol=jsSelf.getAttribute('data-boom-symbol')||'Boom';
  */
 var	ordered=doc.createElement("script").async === true;
 //var ordered=false;
-var rFiletype=/\.(js|css|php)(\?|$)/;
+var rFiletype=/\.(\w+)(\?|$)/;
 var rFullpath=/^(\/|http)/;
+var rModuleName=/(?:^|\w+)!(\S*)$/;
 
 
 function isObject(o){
@@ -148,7 +175,7 @@ function extend(r,s,px,sx){
 
 
 function isFile(name){
-	return !!(!_mods_[name]&&rFiletype.test(name));
+	return !!((_meta_[name]||rFiletype.test(name))&&!_mods_[name]);
 }
 
 function searchFile(modName){
@@ -157,7 +184,7 @@ function searchFile(modName){
 		mods,
 		i,
 		len;
-	
+		
 	for(f in meta){
 		mods=meta[f].mods||[];
 		len=mods.length;
@@ -232,9 +259,7 @@ function loadFile(name,callback){
 		type=rFiletype.exec(src)[1]=='css'?'css':'js',
 		file=_files_[name],
 		node;
-	
-	src=rFullpath.test(src)?src:_config_.base+src;
-	
+			
 	if(!file){
 		//shorter property h:handler,s:status
 		file=_files_[name]={h:[callback],s:0};
@@ -273,7 +298,7 @@ function loadFile(name,callback){
 	
 	node.onload=node.onreadystatechange=function(){
 		if(!this.readyState || this.readyState=='loaded' || this.readyState=='complete'){
-					
+			console.log('Loaded : '+name);
 			win.clearTimeout(file.t);
 			file.s=LOADED;
 			
@@ -285,7 +310,6 @@ function loadFile(name,callback){
 				fn&&fn(name);
 			}
 			
-			console.log('Loaded : '+name);
 			this.load=this.onreadystatechange=null;
 			!_config_.debug && node.parentNode.removeChild(node);
 			
@@ -330,13 +354,13 @@ function processThread(thread,fromLoader){
 			
 			if(!mod){
 				file=searchFile(modName);
+
 				if(!file || (_files_[file]&&_files_[file].s==LOADED)){
-					throw 'Can\'t found the module : '+modName;
+					throw new Error( 'Can\'t found the module : '+modName);
 				}
 				
 				lost.push(modName);
 				
-				//ignore requres each other
 				if(!processed[file]){
 					loadList.push(file);
 					processed[file]=true;
@@ -355,8 +379,11 @@ function processThread(thread,fromLoader){
 		loadThread(thread);
 	}
 	else{
-		console.log('LoadList loaded ! attach now');
+		//setTimeout(function(){
+		console.log('>>>>>>LoadList loaded ! attach '+thread.id);
 		attachMod(thread);
+		//},0);
+		
 	}
 	console.groupEnd();
 }
@@ -448,6 +475,37 @@ function attachMod(thread){
 	delete _thread_[thread.id];
 }
 
+//addFile('file-name',{path:'test1.php',requires:['lib.php'],mods:['t1-1','t1-2']})
+//addFile({'file-name':{...},'file-name-other':{...}})
+function addFile(name,info){
+	if(isObject(name)){
+		for(var p in name){
+			if(name.hasOwnProperty(p)){
+				addFile(p,name[p]);
+			}
+		}
+		return;
+	}
+	var path=info.path;
+	info.path=rFullpath.test(path)?path:_config_.base+path;
+	_meta_[name]=info;
+}
+
+function addMod(name,fn,details){
+	var oq;
+	details=details||{};
+	oq=details.requires||[];
+	details.requires=_config_.util.concat(oq);
+
+	_mods_[name]={
+		//remove prefix 
+		name:name.replace(rModuleName,'$1'),
+		fn:fn,
+		details:details
+	};
+}
+
+
 function Boom(){
 	var boom=this;
 	if(! boom instanceof Boom){
@@ -479,35 +537,19 @@ proto={
 		return 'B'+(++Boom.Env._cidx).toString(36);
 	},
 
-	//add('modelName',function(C){},{requires:[]});
-	add:function(name,fn,details){
-		var oq=details&&details.requires?details.requires:[];
-		details=details||{};
-		details.requires=oq.concat(_config_.util);
-		
-		_mods_[name]={
-			name:name,
-			fn:fn,
-			details:details
-		};
-		
-		return this;
-	},
-
-	//addFile('file-name',{path:'test1.php',requires:['lib.php'],mods:['t1-1','t1-2']})
-	//addFile({'file-name':{...},'file-name-other':{...}})
-	addFile:function(name,info){
-		if(isObject(name)){
-			for(var p in name){
-				if(name.hasOwnProperty(p)){
-					this.addFile(p,name[p]);
-				}
-			}
+	//add module or file
+	add:function(){
+		var args=[].slice.call(arguments,0);
+		//remote modules 
+		if(args.length==1&&isObject(args[0])){
+			addFile(args[0]);
+		}
+		else if(typeof args[1]=='function'){
+			addMod.apply(this,args);
 		}
 		else{
-			_meta_[name]=info;	
+			addFile.apply(this,args);
 		}
-		return this;
 	},
 	
 	//.load('a.js','http://xx.xx/a.js');
@@ -591,9 +633,7 @@ proto={
 
 Boom.prototype=proto;
 
-for(p in proto){
-	Boom[p]=proto[p];
-}
+mix(Boom,proto);
 
 Boom._init();
 
@@ -604,8 +644,6 @@ if(win.location.search.indexOf('debug')>-1||doc.cookie.indexOf('debug=')>-1){
 }
 
 })();
-
-
 
 
 
