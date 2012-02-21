@@ -496,10 +496,11 @@ function addMod(name,fn,details){
 	details=details||{};
 	oq=details.requires||[];
 	details.requires=_config_.util.concat(oq);
-
+	//remove prefix 
+	name=name.replace(rModuleName,'$1');
+	
 	_mods_[name]={
-		//remove prefix 
-		name:name.replace(rModuleName,'$1'),
+		name:name,
 		fn:fn,
 		details:details
 	};
