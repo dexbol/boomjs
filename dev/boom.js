@@ -1,4 +1,4 @@
-/**@license Boom.js v4.0 , a javascript loader and manager | MIT License  */
+/**@license Boom.js v4.1 , a javascript loader and manager | MIT License  */
 //for debug
 if (!(window.console&&window.console.group)) {
   (function() {
@@ -9,6 +9,32 @@ if (!(window.console&&window.console.group)) {
     for (var i = 0; i < names.length; ++i) {
       window.console[names[i]] = window.oldconsole[names[i]]||function() {};
     }
+	
+	var mlist=[];
+	var s=false;
+	console.log=function(m){
+		if(s){
+			var p=document.createElement('p');
+			p.innerHTML=m;
+			document.getElementById('MRMRM').appendChild(p);
+		}
+		mlist.push('<p>'+m+'</p>');
+	}
+	
+	console.groupCollapsed=function(m){
+		m='-----------'+m+'-------------';
+		console.log(m);
+	}
+	
+	window.attachEvent('onload',function(){
+		var body=document.body;
+		var div=document.createElement('div');
+		div.innerHTML=mlist.join('');
+		div.id="MRMRM"
+		body.insertBefore(div,body.firstChild)
+		s=true;
+	})
+	
   }());
 }
 
@@ -61,6 +87,7 @@ var	ordered=doc.createElement("script").async === true;
 //var ordered=false;
 var rFiletype=/\.(\w+)(\?|$)/;
 var rFullpath=/^(\/|http)/;
+var rModuleName=/(?:^|\w+)!(\S*)$/;
 
 
 function isObject(o){
@@ -148,7 +175,7 @@ function extend(r,s,px,sx){
 
 
 function isFile(name){
-	return !!(!_mods_[name]&&rFiletype.test(name)||_meta_[name]);
+	return !!((_meta_[name]||rFiletype.test(name))&&!_mods_[name]);
 }
 
 function searchFile(modName){
@@ -157,7 +184,7 @@ function searchFile(modName){
 		mods,
 		i,
 		len;
-	
+		
 	for(f in meta){
 		mods=meta[f].mods||[];
 		len=mods.length;
@@ -232,9 +259,7 @@ function loadFile(name,callback){
 		type=rFiletype.exec(src)[1]=='css'?'css':'js',
 		file=_files_[name],
 		node;
-	
-	src=rFullpath.test(src)?src:_config_.base+src;
-	
+			
 	if(!file){
 		//shorter property h:handler,s:status
 		file=_files_[name]={h:[callback],s:0};
@@ -329,8 +354,9 @@ function processThread(thread,fromLoader){
 			
 			if(!mod){
 				file=searchFile(modName);
+
 				if(!file || (_files_[file]&&_files_[file].s==LOADED)){
-					throw 'Can\'t found the module : '+modName;
+					throw new Error( 'Can\'t found the module : '+modName);
 				}
 				
 				lost.push(modName);
@@ -353,8 +379,11 @@ function processThread(thread,fromLoader){
 		loadThread(thread);
 	}
 	else{
-		console.log('LoadList loaded ! attach now');
+		//setTimeout(function(){
+		console.log('>>>>>>LoadList loaded ! attach '+thread.id);
 		attachMod(thread);
+		//},0);
+		
 	}
 	console.groupEnd();
 }
@@ -455,20 +484,22 @@ function addFile(name,info){
 				addFile(p,name[p]);
 			}
 		}
+		return;
 	}
-	else{
-		_meta_[name]=info;	
-	}
+	var path=info.path;
+	info.path=rFullpath.test(path)?path:_config_.base+path;
+	_meta_[name]=info;
 }
 
 function addMod(name,fn,details){
 	var oq;
 	details=details||{};
 	oq=details.requires||[];
-	details.requires=oq.concat(_config_.util);
-	
+	details.requires=_config_.util.concat(oq);
+
 	_mods_[name]={
-		name:name,
+		//remove prefix 
+		name:name.replace(rModuleName,'$1'),
 		fn:fn,
 		details:details
 	};
@@ -508,8 +539,8 @@ proto={
 
 	//add module or file
 	add:function(){
-		var args=[].splice.call(arguments,0);
-		
+		var args=[].slice.call(arguments,0);
+		//remote modules 
 		if(args.length==1&&isObject(args[0])){
 			addFile(args[0]);
 		}

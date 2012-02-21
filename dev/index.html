@@ -19,6 +19,7 @@ CN6.config({
 	debug:true
 });
 
+/*
 
 CN6.add({
 	'base':{path:'base.js',mods:['util']},
@@ -37,6 +38,11 @@ function output(msg){
 
 
 CN6.use('mD');
+*/
+
+CN6.add('module',{path:'module.js'});
+
+CN6.use('module');
 </script>
 </head>
 <body>
