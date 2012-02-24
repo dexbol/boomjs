@@ -1,4 +1,4 @@
-/**@license Boom.js v4.1 , a javascript loader and manager | MIT License  */
+/**@license Boom.js v4.3 , a javascript loader and manager | MIT License  */
 (function(){
 var win=this;
 var doc=win.document;
@@ -295,6 +295,7 @@ function processThread(thread,fromLoader){
 			if(isFile(modName)){
 				if(!(_files_[modName]&&_files_[modName].s==LOADED)){
 					loadList.push(modName);
+					lost.push(modName);
 				}
 				return;
 			}
