@@ -1,4 +1,4 @@
-/**@license Boom.js v4.3 , a javascript loader and manager | MIT License  */
+/**@license Boom.js v4.4 , a javascript loader and manager | MIT License  */
 //for debug
 if (!(window.console&&window.console.group)) {
   (function() {
@@ -68,9 +68,7 @@ var	_mods_={};
 var	_files_={};
 var	_thread_={};
 
-	
 var proto;
-
 //the boom.js , tech from Do.js v2 
 var	jsSelf=(function(){
 		var scripts=doc.getElementsByTagName('script');
@@ -619,11 +617,14 @@ proto={
 	},
 	
 	config:function(key,value){
-		if(!value){
+		if(isObject(key)){
 			mix(_config_,key,true);
 		}
-		else{
+		else if(value){
 			_config_[key]=value;
+		}
+		else{
+			return _config_[key];
 		}
 	},
 
