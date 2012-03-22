@@ -46,36 +46,36 @@ var win = host;
 var doc = win.document;
 
 var LOADING = 1;
-var	LOADED = 2;
+var LOADED = 2;
 	
 var _config_= {
-		timeout: 12000,
-		base: '',
-		debug: false,
-		util: [],
-		fail: function(name,src) {
-			//doc.title='✖ '+src+' Load Abortively,Please Refresh';
-		}
-	};
-var	_meta_ = {};
-var	_mods_ = {};
-var	_files_ = {};
-var	_thread_ = {};
+	timeout: 12000,
+	base: '',
+	debug: false,
+	util: [],
+	fail: function(name, src) {
+		//doc.title='✖ '+src+' Load Abortively,Please Refresh';
+	}
+};
+var _meta_ = {};
+var _mods_ = {};
+var _files_ = {};
+var _thread_ = {};
 
 var proto;
 //the boom.js , tech from Do.js v2 
-var	jsSelf = (function() {
+var jsSelf = (function() {
 		var scripts = doc.getElementsByTagName('script');
 		return scripts[scripts.length-1];
 	})();
 
-var	symbol = jsSelf.getAttribute('data-boom-symbol') || 'Boom';
+var symbol = jsSelf.getAttribute('data-boom-symbol') || 'Boom';
 /**
  * @see http://labjs.com/documentation.php
  * @see http://wiki.whatwg.org/wiki/Dynamic_Script_Execution_Order
  * @see http://hsivonen.iki.fi/script-execution/
  */
-var	ordered = doc.createElement("script").async === true;
+var ordered = doc.createElement("script").async === true;
 //var ordered=false;
 var rFiletype = /\.(\w+)(\?|$)/;
 var rFullpath = /^(\/|http)/;
