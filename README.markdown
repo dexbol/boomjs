@@ -2,7 +2,6 @@
 
 A javascript loader and manager
 
-[http://dexbol.github.com/boom/](http://dexbol.github.com/boom/)
 
 
 
