@@ -4,11 +4,8 @@
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <title>Boom Unit Test</title>
 <link href="qunit-git.css"  type="text/css" rel="stylesheet" />
-<script type="text/javascript" src="jquery-latest.js"></script>
 <script type="text/javascript" src="qunit-git.js"></script>
-
 <script type="text/javascript" src="../dev/boom.js"></script>
-
 </head>
 <body>
 <p>* Requires Http Server</p>
@@ -21,20 +18,17 @@
 
 <script type="text/javascript">
 
-
-asyncTest('add module',3,function(){
-
-	Boom.add('mod1',function(C){
+asyncTest('add module', 3, function(){
+	Boom.add('mod1', function(C){
 		C.mod1=true
 	});
-
-	ok(Boom.Env._mods.hasOwnProperty('mod1'),'add module success');
+	ok(Boom.Env.mods.hasOwnProperty('mod1'), 'add module success');
 	
-	Boom.use('mod1',function(){
+	Boom.use('mod1', function(){
 		ok(true,'attache module callabck');
 	});
 
-	ok(Boom.mod1,'use module success');
+	ok(Boom.mod1, 'use module success');
 	start();
 });
 
@@ -53,39 +47,35 @@ asyncTest('use module',1,function(C){
 	start();
 });
 
-
-
 asyncTest('add file',function(){
-
+	var meta = Boom.Env.meta;
 	Boom.add({
-		'base':{path:'base.js',mods:['util']},
-		'mA_mB_mC':{path:'mA_mB_mC.js',requires:['base'],mods:['mA','mB','mC']},
-		'mD.js':{path:'mD.js',requires:['base'],mods:['mD']},
-		'mE.js':{path:'mE.js',requires:['base'],mods:['mE']},
-		'needCss.js':{path:'needCss.js',requires:['a.css'],mods:['needCss']},
-		'a.css':{path:'a.css'},
-		'timeout.js':{path:'timeout.php'}
+		'base':{path:'asset/base.js',mods:['util']},
+		'mA_mB_mC':{path:'asset/mA_mB_mC.js',requires:['base'],mods:['mA','mB','mC']}
 	});
-
-	var meta=Boom.Env._meta;
 	ok(meta.hasOwnProperty('base')&&
-	meta.hasOwnProperty('mA_mB_mC'),'add file success');
+	meta.hasOwnProperty('mA_mB_mC'), 'add file success');
 
 	start();
-
 });
+
+module('about file', {
+	setup: function() {
+		Boom.config('base', 'asset/');
+		Boom.add({
+			'base':{path:'base.js',mods:['util']},
+			'mA_mB_mC':{path:'mA_mB_mC.js',requires:['base'],mods:['mA','mB','mC']},
+			'mD.js':{path:'mD.js',requires:['base'],mods:['mD']},
+			'mE.js':{path:'mE.js',requires:['base'],mods:['mE']},
+			'needCss.js':{path:'needCss.js',requires:['a.css'],mods:['needCss']},
+			'a.css':{path:'a.css'},
+			'timeout.js':{path:'timeout.php'}
+		});		
+	}
+})
 
 
 asyncTest('use file',1,function(){
-	Boom.add({
-		'base':{path:'base.js',mods:['util']},
-		'mA_mB_mC':{path:'mA_mB_mC.js',requires:['base'],mods:['mA','mB','mC']},
-		'mD.js':{path:'mD.js',requires:['base'],mods:['mD']},
-		'mE.js':{path:'mE.js',requires:['base'],mods:['mE']},
-		'needCss.js':{path:'needCss.js',requires:['a.css'],mods:['needCss']},
-		'a.css':{path:'a.css'},
-		'timeout.js':{path:'timeout.php'}
-	});
 	Boom.use('mD.js',function(){
 		ok(F_base&&F_mD,'use file success');
 		start();
@@ -108,7 +98,7 @@ asyncTest('use module that require css file',1,function(){
 
 	Boom.use('needCss',function(){
 		start();
-		jQuery('body').css('backgroundColor','white');
+		document.getElementsByTagName('body')[0].style.backgroundColor = 'white';
 		ok(true,'needCss module used');
 	});
 
@@ -130,10 +120,10 @@ asyncTest('preload files parallelly then use module',2,function(){
 		fail:function(){},
 		timeout:6000
 	});
-	Boom.add('T1.js',{path:'T1.php'});
-	Boom.add('T2.js',{path:'T2.php',requires:['T1.js'],mods:['T2']});
+	Boom.add('T1.js',{path:'asset/T1.php'});
+	Boom.add('T2.js',{path:'asset/T2.php',requires:['T1.js'],mods:['T2']});
 	Boom.use('T2.js',function(){
-		ok(Boom.Env._mods['T2'],'T2.js loaded')
+		ok(Boom.Env.mods['T2'],'T2.js loaded')
 		Boom.use('T2',function(C){
 			ok(C.result==10,'success');
 			start();

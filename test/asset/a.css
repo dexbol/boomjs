@@ -1,0 +1,11 @@
+/*
+<?php
+    header('Content-Type','text/javascript');
+	header('Cache-Control','max-age=120');	
+	header("Content-Type", "text/css");
+	//usleep(80000);
+	sleep(2);
+?>
+*/
+
+body{background-color:pink;}
