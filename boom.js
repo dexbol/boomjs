@@ -1,54 +1,5 @@
 /**@license Boom.js v5.0.0 , a javascript loader and manager | MIT License  */
 
-//for debug
-void function(win, doc) {
-	if (win.console && win.console.group) {
-		return;
-	}
-	var methods = ['log', 'debug', 'info', 'warn', 'error', 'assert', 'dir', 'dirxml', 
-					'group', 'groupCollapsed', 'groupEnd', 'time', 'timeEnd', 'count', 
-					'trace', 'profile', 'profileEnd'];
-	var method;
-	var i = 0;
-	var noop = function() {};
-	var console = {};
-	var oldConsole = win.console;
-	for (; i < methods.length; i++) {
-		method = methods[i]
-		console[method] = typeof oldConsole[method] == 'function' ? oldConsole[method] : noop;
-	}
-	win.console = console;
-
-	// fake console.group and console.log for ie
-	var mlist = [];
-	var pageloaded = false;
-	var consoleLayerId = '_IE_FAKE_CONSOLE_'
-
-	console.log = function(msg) {
-		var p;
-		if (! pageloaded) {
-			mlist.push(msg);
-		} else {
-			p = doc.createElement('p');
-			p.innerHTML = msg;
-			doc.getElementById(consoleLayerId).appendChild(p);
-		}
-	};
-	console.groupCollapsed = function(msg) {
-		msg = '------------------' + msg + '--------------------';
-		console.log(msg);
-	};
-	win.attachEvent('onload', function() {
-		var div = doc.createElement('div');
-		var body = doc.getElementsByTagName('body')[0];
-		pageloaded = true;
-		div.innerHTML = mlist.join('');
-		div.id = consoleLayerId;
-		body.insertBefore(div, body.firstChild);
-	});
-
-}(window, document);
-//for debug end
 
 
 (function(win, doc) {
@@ -313,7 +264,6 @@ function loadFile(name, callback) {
 	node.onload = node.onreadystatechange = function() {
 		if (! this.readyState || this.readyState == 'loaded' 
 		  || this.readyState == 'complete') {
-			console.log('Loaded : ' + name);
 
 			var handler = file.h;
 			var fn;
@@ -336,12 +286,6 @@ function loadFile(name, callback) {
 }
 
 function processThread(thread, fromLoader) {
-	//for debug
-	if (fromLoader) {
-		console.groupEnd();
-	}
-	console.groupCollapsed('Process Thread : ' + thread.id);
-	//for debug end
 	var loadList = thread.f;
 	var count = thread.count;
 	var lost = thread.lost;
@@ -357,7 +301,6 @@ function processThread(thread, fromLoader) {
 			return;
 		}
 
-		console.log(modName);
 		processed[modName] = true;
 
 		if (isRomteModule(modName)) {
@@ -385,13 +328,10 @@ function processThread(thread, fromLoader) {
 	each(list, process);
 
 	if (loadList.length > 0) {
-		console.log('LoadList : ' + loadList);
 		loadThread(thread);
 	} else {
-		console.log('>>>>>loadList loaded ! attache ' + thread.id);
 		attachModule(thread);
 	}
-	console.groupEnd();
 }
 
 function loadThread(thread) {
@@ -417,8 +357,6 @@ function loadThread(thread) {
 		});
 	}
 
-	console.log('row: ' + row);
-	console.log('col: ' + col);
 	loadRowColumn(row, col, function() {
 		thread.f = [];
 		processThread(thread, true);
@@ -622,11 +560,6 @@ bproto = {
 		}
 	},
 
-	//for debug
-	oldBrowser: function() {
-		ordered = false;
-	},
-	//for debug end
 	mix: mix,
 	merge: merge,
 	extend: extend
