@@ -1,4 +1,4 @@
-/**@license Boom.js v5.0.0 , a javascript loader and manager | MIT License  */
+/**@license Boom.js v5.0.0 , a javascript loader and manager | Any License You Want */
 
 //for debug
 void function(win, doc) {
