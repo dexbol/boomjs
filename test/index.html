@@ -18,125 +18,111 @@
 
 <script type="text/javascript">
 
-asyncTest('add module', 3, function(){
-	Boom.add('mod1', function(C){
-		C.mod1=true
+asyncTest('add local module and use it', 3, function() {
+	Boom.add('local-module', function(C) {
+		ok(C === Boom, 'use success by Boom');
 	});
-	ok(Boom.Env.mods.hasOwnProperty('mod1'), 'add module success');
+	ok(typeof Boom.Env.mods['local-module'] == 'object', 
+		'add local module is success');
+	Boom.use('local-module');
 	
-	Boom.use('mod1', function(){
-		ok(true,'attache module callabck');
+	var boom = Boom();
+	boom.add('local-module-by-instance', function(C) {
+		ok(C == boom, 'use local module by instance of Boom success');
 	});
-
-	ok(Boom.mod1, 'use module success');
+	ok(typeof Boom.Env.mods['local-module-by-instance'] == 'object', 
+		'add local module by instance of Boom is success');
 	start();
 });
 
-
-asyncTest('use module',1,function(C){
-	Boom.add('test1',function(C){
-		C.base=function(){
-			
-		}
+asyncTest('config', function() {
+	Boom.config({
+		'test': 'test'
 	});
-	Boom.add('extend',function(C){
-		ok(typeof C.base =='function','require modlue success');
-	},{requires:['test1']});
-
-	Boom.use('extend');
-	start();
+	ok(Boom.Env.config.test == 'test');
+	Boom.config('test', 'hi');
+	ok(Boom.Env.config.test == 'hi');
+	delete Boom.config.test;
+	start()
 });
 
-asyncTest('add file',function(){
-	var meta = Boom.Env.meta;
-	Boom.add({
-		'base':{path:'asset/base.js',mods:['util']},
-		'mA_mB_mC':{path:'asset/mA_mB_mC.js',requires:['base'],mods:['mA','mB','mC']}
-	});
-	ok(meta.hasOwnProperty('base')&&
-	meta.hasOwnProperty('mA_mB_mC'), 'add file success');
-
-	start();
-});
-
-module('about file', {
+module('remote module', {
 	setup: function() {
 		Boom.config('base', 'asset/');
 		Boom.add({
-			'base':{path:'base.js',mods:['util']},
-			'mA_mB_mC':{path:'mA_mB_mC.js',requires:['base'],mods:['mA','mB','mC']},
-			'mD.js':{path:'mD.js',requires:['base'],mods:['mD']},
-			'mE.js':{path:'mE.js',requires:['base'],mods:['mE']},
-			'needCss.js':{path:'needCss.js',requires:['a.css'],mods:['needCss']},
-			'a.css':{path:'a.css'},
-			'timeout.js':{path:'timeout.php'}
-		});		
+			'contains_one_module': {
+				path: 'contains_one_module.js', 
+				mods: ['module_1']
+			},
+			'contains_many_module': {
+				path: 'contains_many_module.js',
+				mods: ['module_2', 'module_3']
+			},
+			'contains_same_name_module': {
+				path: 'contains_same_name_module.js'
+			},
+			'no_module_1': {
+				path: 'no_module_1.js'
+			},
+			'no_module_2': {
+				path: 'no_module_2.js'
+			},
+			'need_css': {
+				path: 'need_css.js',
+				requires: ['css']
+			},
+			'css': {
+				path: 'a.css'
+			},
+			'timeout': {
+				path: 'timeout.php'
+			}
+		});
 	}
 })
 
+asyncTest('add remote module', function() {
+	ok(typeof Boom.Env.rmods['contains_one_module'] == 'object');
+	start();
+});
 
-asyncTest('use file',1,function(){
-	Boom.use('mD.js',function(){
-		ok(F_base&&F_mD,'use file success');
+asyncTest('use module that in remote module', 1, function() {
+	Boom.use('module_3', function(C) {
+		ok(C.module_1 == true && C.module_2 ===true && C.module_3 === true);
+		start();
+	});
+});
+
+asyncTest('use module that it\'s name is as same as remote module that contains it', 1, function() {
+	Boom.use('contains_same_name_module', function(C) {
+		ok(C.contains_same_name_module == true);
+		start();
+	});
+});
+
+asyncTest('use remote modules that don\'t contain local module, they could be ordered execute', 1, function() {
+	Boom.use('no_module_1', 'no_module_2', function() {
+		ok(NO_MODULE_1 === true && NO_MODULE_2 === true);
+		start();
+	});
+});
+
+asyncTest('use module that depends css module', 1, function() {
+	Boom.use('need_css', function(C) {
+		ok(typeof C.resetBackground == 'function' && C.resetBackground())
 		start();
 	});
 });
 
 
-
-asyncTest('use module by file',function(){
-	Boom.use('mA',function(C){
-		ok(typeof C.output == 'function'&&C.mA,'base.js loaded , mA attached');
-		start();
-
-	});	
-});
-
-
-
-asyncTest('use module that require css file',1,function(){
-
-	Boom.use('needCss',function(){
-		start();
-		document.getElementsByTagName('body')[0].style.backgroundColor = 'white';
-		ok(true,'needCss module used');
-	});
-
-});
-
-asyncTest('load timeout',function(){
-	Boom.config('fail',function(){
-		ok(true,'timeout');
+asyncTest('remot module timeout callback', 1, function() {
+	Boom.config('fail', function() {
+		ok(true);
 		start();
 	});
-	Boom.config({
-		timeout:3000
-	})
-	Boom.load('timeout.js');
+	Boom.config('timeout', 1000);
+	Boom.use('timeout');
 });
-
-asyncTest('preload files parallelly then use module',2,function(){
-	Boom.config({
-		fail:function(){},
-		timeout:6000
-	});
-	Boom.add('T1.js',{path:'asset/T1.php'});
-	Boom.add('T2.js',{path:'asset/T2.php',requires:['T1.js'],mods:['T2']});
-	Boom.use('T2.js',function(){
-		ok(Boom.Env.mods['T2'],'T2.js loaded')
-		Boom.use('T2',function(C){
-			ok(C.result==10,'success');
-			start();
-		});
-	});
-});
-
-asyncTest('load muti file',2,function(){
-	var FILE_1,FILE_2;
-	Boom.load('f1.js','f2.js');
-});
-
-
 
 
 

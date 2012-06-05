@@ -1,98 +1,118 @@
-/**@license Boom.js v4.4.1 , a javascript loader and manager | MIT License  */
+/**@license Boom.js v5.0.0 , a javascript loader and manager | MIT License  */
+
 //for debug
-if (!(window.console&&window.console.group)) {
-  (function() {
-    var names = ["log", "debug", "info", "warn", "error", "assert", "dir", "dirxml",
- 	 "group", "groupCollapsed","groupEnd", "time", "timeEnd", "count", "trace", "profile", "profileEnd"];
- 	window.oldconsole=window.console||{};
-    window.console = {};
-    for (var i = 0; i < names.length; ++i) {
-      window.console[names[i]] = window.oldconsole[names[i]]||function() {};
-    }
-	
-	var mlist=[];
-	var s=false;
-	console.log=function(m){
-		if(s){
-			var p=document.createElement('p');
-			p.innerHTML=m;
-			document.getElementById('MRMRM').appendChild(p);
+void function(win, doc) {
+	if (win.console && win.console.group) {
+		return;
+	}
+	var methods = ['log', 'debug', 'info', 'warn', 'error', 'assert', 'dir', 'dirxml', 
+					'group', 'groupCollapsed', 'groupEnd', 'time', 'timeEnd', 'count', 
+					'trace', 'profile', 'profileEnd'];
+	var method;
+	var i = 0;
+	var noop = function() {};
+	var console = {};
+	var oldConsole = win.console;
+	for (; i < methods.length; i++) {
+		method = methods[i]
+		console[method] = typeof oldConsole[method] == 'function' ? oldConsole[method] : noop;
+	}
+	win.console = console;
+
+	// fake console.group and console.log for ie
+	var mlist = [];
+	var pageloaded = false;
+	var consoleLayerId = '_IE_FAKE_CONSOLE_'
+
+	console.log = function(msg) {
+		var p;
+		if (! pageloaded) {
+			mlist.push(msg);
+		} else {
+			p = doc.createElement('p');
+			p.innerHTML = msg;
+			doc.getElementById(consoleLayerId).appendChild(p);
 		}
-		mlist.push('<p>'+m+'</p>');
-	}
-	
-	console.groupCollapsed=function(m){
-		m='-----------'+m+'-------------';
-		console.log(m);
-	}
-	
-	window.attachEvent('onload',function(){
-		var body=document.body;
-		var div=document.createElement('div');
-		div.innerHTML=mlist.join('');
-		div.id="MRMRM"
-		body.insertBefore(div,body.firstChild)
-		s=true;
-	})
-	
-  }());
-}
+	};
+	console.groupCollapsed = function(msg) {
+		msg = '------------------' + msg + '--------------------';
+		console.log(msg);
+	};
+	win.attachEvent('onload', function() {
+		var div = doc.createElement('div');
+		var body = doc.getElementsByTagName('body')[0];
+		pageloaded = true;
+		div.innerHTML = mlist.join('');
+		div.id = consoleLayerId;
+		body.insertBefore(div, body.firstChild);
+	});
 
+}(window, document);
 //for debug end
-(function(host) {
-'use strict';
 
-var win = host;
-var doc = win.document;
+
+(function(win, doc) {
 
 var LOADING = 1;
 var LOADED = 2;
-	
-var _config_= {
-	timeout: 12000,
-	base: '',
-	debug: false,
-	util: [],
-	fail: function(name, src) {
-		//doc.title='✖ '+src+' Load Abortively,Please Refresh';
-	}
-};
-var _meta_ = {};
-var _mods_ = {};
+
+// local modules
+// contains some information about name, factory function and depends information
+var _modules_ = {};
+
+// remote modules is a file that not yet load and execute
+// normally, a remote module contains one or mutiple local module
+// remote module does't contain any local module sometimes. e.g.
+// a jQuery file or other third party library.
+// if a remote module contains only one local module and the local module's name 
+// is as same as remote module's name, when you use the remote module , the local 
+// module will be used automatically after remote module loaded.
+var _remoteModules_ = {};
+
+// contains files that loaded data
 var _files_ = {};
+
+// thread object holder
 var _thread_ = {};
+var _config_ = {
+	'timeout': 12000,
+	'base': '',
+	'debug': false,
+	'util': [],
+	'fail': function(filename, url) {}
+}
+var bproto;
 
-var proto;
-//the boom.js , tech from Do.js v2 
-var jsSelf = (function() {
-		var scripts = doc.getElementsByTagName('script');
-		return scripts[scripts.length-1];
-	})();
+// the boom.js tag , tech form Do.js v2
+var jsSelf = function() {
+	var scripts = doc.getElementsByTagName('script');
+	return scripts[scripts.length - 1];
+}();
 
-var symbol = jsSelf.getAttribute('data-boom-symbol') || 'Boom';
-/**
- * @see http://labjs.com/documentation.php
- * @see http://wiki.whatwg.org/wiki/Dynamic_Script_Execution_Order
- * @see http://hsivonen.iki.fi/script-execution/
- */
-var ordered = doc.createElement("script").async === true;
-//var ordered=false;
+// global variable that a reference to Boom
+var symbol = jsSelf.getAttribute('data-symbol') || 'Boom';
+
+// @see http://labjs.com/documentation.php
+// @see http://wiki.whatwg.org/wiki/Dynamic_Script_Execution_Order
+// @see http://hsivonen.iki.fi/script-execution/
+var ordered = doc.createElement('script').async === true;
 var rFiletype = /\.(\w+)(\?|$)/;
 var rFullpath = /^(\/|http)/;
 var rModuleName = /(?:^|\w+)!(\S*)$/;
 
-
-function isObject(o) {
-	return !! (o && Object.prototype.toString.call(o)=='[object Object]');
+function isObject(obj) {
+	return obj && Object.prototype.toString.call(obj) == '[object Object]'; 
 }
 
-function each(ar,fn) {
-	for (var i=0, len=ar.length; i<len; i++) {
+function each(ar, fn) {
+	var i = 0;
+	var len = ar.length;
+	for (; i<len; i++) {
 		fn(ar[i], i);
 	}
 }
 
-//the three function followed from YUI3
+//the three functions followed from YUI3
 function mix(r, s, ov, wl, merge) {
     var i, l, p;
 
@@ -122,30 +142,33 @@ function mix(r, s, ov, wl, merge) {
 }
 
 function merge() {
-    var a = arguments, o = {}, i, l = a.length;
-    for (i=0; i<l; i=i+1) {
+    var a = arguments;
+    var o = {};
+    var i = 0;
+    var l = a.length;
+
+    for (; i<l; i++) {
         mix(o, a[i], true);
     }
     return o;
 }
 
-function extend(r,s,px,sx){
-    if (!s || !r){
-		return r;
-	} 
-	
-    var OP = Object.prototype,
-        O = function (o) {
-                function F() {}
-                F.prototype = o;
-                return new F();
-            },
-        sp = s.prototype,
-        rp = O(sp);
+function extend(r, s, px, sx) {
+	if (! s || ! r) {
+		return;
+	}
 
-    r.prototype = rp;
-    rp.constructor = r;
-    r.superclass = sp;
+	var OP = Object.prototype;
+	var O = function (o) {
+		function F() {}
+		F.prototype = o;
+		return new F();
+	}
+	var sp = s.prototype;
+	var rp = O(sp);
+	r.prototype = rp;
+	rp.constructor = r;
+	r.superclass = s;
 
     // assign constructor property
     if (s !== Object && sp.constructor === OP.constructor) {
@@ -162,391 +185,368 @@ function extend(r,s,px,sx){
         mix(r, sx, true);
     }
 
-    return r;		
+    return r;
 }
 
-
-function isFile(name) {
-	return !! ((_meta_[name] || rFiletype.test(name)) && ! _mods_[name]);
+function isRomteModule(name) {
+	return (_remoteModules_[name] || rFiletype.test(name)) && ! _modules_[name];
 }
 
-function searchFile(modName) {
-	var meta = _meta_;
+function searchInRemoteModule(modName) {
+	var meta = _remoteModules_;
 	var f;
 	var mods;
 	var i;
 	var len;
-	
-	for(f in meta) {
-		mods = meta[f].mods||[];
+
+	for (f in meta) {
+		mods = meta[f].mods || [];
 		len = mods.length;
-		for(i = 0; i < len; i++){
-			if(mods[i] == modName){
+		for (i = 0; i < len; i++) {
+			if (mods[i] == modName) {
 				return f;
 			}
 		}
 	}
-	
 	return false;
-};
+}
 
+//load file parallelly
 function loadRow(list, callback) {
 	var flag = list.length;
 	var file;
-	var cb = function(){
-			if(--flag<=0){
-				callback&&callback();
-				cb=null;
-			}
-		};
-	
+	var cb = function() {
+		if (-- flag <= 0) {
+			callback && callback();
+			callback = cb = null;
+		}
+	};
+
 	// if list is empty , just invoke callback function.
-	if(flag == 0) {
-		cb();
-		return;
+	if (flag == 0) {
+		return cb();
 	}
-	
-	while(file=list.shift()) {
+
+	while (file = list.shift()) {
 		loadFile(file, cb);
 	}
 }
 
+//load file one by one.
 function loadColumn(list, callback) {
-	function cb() {
+	var cb = function() {
 		if (list.length == 0) {
 			callback && callback();
-			cb=null;
-			
+			callback = cb = null;
 		} else {
-			loadFile(list.shift(), cb);		
+			loadFile(list.shift(), cb);
 		}
 	}
-	cb();	
+	cb();
 }
 
 function loadRowColumn(row, column, callback) {
-	var r=false;
-	var	c=false;
-		
-	function complete() {
-		if (r && c && callback) { 
+	var row_result = false;
+	var column_result = false;
+	var complete = function() {
+		if (row_result && column_result && callback) {
 			callback();
-			callback = null;
+			complete = callback = null;
 		}
 	}
 
 	loadRow(row, function() {
-		r = true;
-		complete();
+		row_result = true;
+		complete()
 	});
 	loadColumn(column, function() {
-		c = true;
+		column_result = true;
 		complete();
 	});
 }
 
 function loadFile(name, callback) {
-	var metaFile = _meta_;
-	var	src=metaFile[name] ? metaFile[name].path : name;
-	var	type=rFiletype.exec(src)[1] == 'css' ? 'css' : 'js';
-	var	file=_files_[name];
-	var	node;
-			
-	if (!file) {
-		//shorter property h:handler,s:status
-		file = _files_[name] = {h: [callback], s: 0};
+	var metaFile = _remoteModules_;
+	var src = metaFile[name] ? metaFile[name].path : name;
+	var type = rFiletype.exec(src)[1] == 'css' ? 'css' : 'js';
+	var file = _files_[name];
+	var node;
+
+	//shorter property h:handler,s:status
+	if (! file) {
+		file = _files_[name] = {
+			h: [callback], 
+			s: 0
+		};
 	}
 
 	//http://www.phpied.com/when-is-a-stylesheet-really-loaded/
 	//http://lifesinger.org/lab/2011/load-js-css/
-	if (type=='css') {
+	if (type == 'css') {
 		node = doc.createElement('link');
 		node.href = src;
-		node.type = 'text/css';
 		node.rel = 'stylesheet';
 		jsSelf.parentNode.insertBefore(node, jsSelf);
-		callback && callback();
+		callback && callback()
 		file.s = LOADED;
 		return;
 	}
-	
+
 	if (file.s == LOADED) {
 		callback && callback(name);
 		return;
 	}
-	
+
 	if (file.s == LOADING) {
 		callback && file.h.push(callback);
 		return;
 	}
-	
+
 	node = doc.createElement('script');
 	node.async = false;
 	node.src = src;
-	
+
 	file.t = win.setTimeout(function() {
 		_config_.fail(name, src);
 	}, _config_.timeout);
-	
-	node.onload = node.onreadystatechange = function(){
-		if(!this.readyState || this.readyState=='loaded' || this.readyState=='complete') {
-			console.log('Loaded : '+name);
+
+	node.onload = node.onreadystatechange = function() {
+		if (! this.readyState || this.readyState == 'loaded' 
+		  || this.readyState == 'complete') {
+			console.log('Loaded : ' + name);
+
+			var handler = file.h;
+			var fn;
 			win.clearTimeout(file.t);
 			file.s = LOADED;
-			
-			var handler = file.h;
-			var	fn;
-			
+
 			while (handler.length > 0) {
-				fn=handler.shift();
+				fn = handler.shift();
 				fn && fn(name);
 			}
-			
-			this.load = this.onreadystatechange = null;
-			!_config_.debug && node.parentNode.removeChild(node);
-			
+
+			// http://www.phpied.com/async-javascript-callbacks/
+			this.onload = this.onreadystatechange = null;
+			! _config_.debug && this.parentNode.removeChild(this);
 		}
-	}
-	
+	};
+
 	jsSelf.parentNode.insertBefore(node, jsSelf);
-	file.s = LOADING;	
+	file.s = LOADING;
 }
 
 function processThread(thread, fromLoader) {
-//for debug
-	if(fromLoader) {
+	//for debug
+	if (fromLoader) {
 		console.groupEnd();
 	}
 	console.groupCollapsed('Process Thread : ' + thread.id);
-//for debug end	
+	//for debug end;
 	var loadList = thread.f;
-	var	count = thread.count;
-	var	lost = thread.lost;
-	var	list = fromLoader ? lost : thread.mods;
-	var	mods = _mods_;
-	var	processed = {};
-		
-	var	p = function(modName) {
-			if (!modName || processed[modName]) {
-				return;
-			}
-			console.log(modName);
-			processed[modName] = true;
-			
-			if(isFile(modName)) {
-				if (!(_files_[modName] && _files_[modName].s == LOADED)) {
-					loadList.push(modName);
-					lost.push(modName);
-				}
-				return;
-			}
-			
-			var mod = mods[modName];
-			var	file;
-			
-			if (!mod) {
-				file = searchFile(modName);
+	var count = thread.count;
+	var lost = thread.lost;
+	var list = fromLoader ? lost : thread.mods;
+	var mods = _modules_;
+	var processed = {};
 
-				if (! file || (_files_[file] && _files_[file].s == LOADED)) {
-					throw new Error( 'Can\'t found the module : '+modName);
-				}
-				
-				lost.push(modName);
-				
-				if (! processed[file]) {
-					loadList.push(file);
-					processed[file] = true;
-				}
-				return; 
-				
-			} else if (mod.details.requires) {
-				each(mod.details.requires,p)
-			}
-		};
+	var process = function(modName) {
+		var mod;
+		var file;
+		var requires;
+		if (! modName || processed[modName]) {
+			return;
+		}
 
-	each(list,p);
-	
-	if (loadList.length>0) {
+		console.log(modName);
+		processed[modName] = true;
+
+		if (isRomteModule(modName)) {
+			if (! (_files_[modName] && _files_[modName].s == LOADED)) {
+				loadList.push(modName);
+				lost.push(modName);				
+			}
+
+		} else if (! (mod = mods[modName])) {
+			file = searchInRemoteModule(modName);
+			if (!file || _files_[file] && _files_[file].s == LOADED) {
+				throw new Error('Can\'t found the moudle : ' + modName);
+			}
+			lost.push(modName);
+			if (! processed[file]) {
+				loadList.push(file);
+				processed[file] = true;
+			}
+
+		} else if (requires = mod.details.requires) {
+			each(requires, process);
+		}
+	};
+
+	each(list, process);
+
+	if (loadList.length > 0) {
 		console.log('LoadList : ' + loadList);
 		loadThread(thread);
-		
 	} else {
-		//setTimeout(function(){
-		console.log('>>>>>>LoadList loaded ! attach ' + thread.id);
-		attachMod(thread);
-		//},0);
-		
+		console.log('>>>>>loadList loaded ! attache ' + thread.id);
+		attachModule(thread);
 	}
 	console.groupEnd();
 }
 
 function loadThread(thread) {
+	var list = remoteModuleDepend(thread.f);
+	var col = [];
+	var row = [];
 
-	var list = fileDepend(thread.f);
-	var	col = [];
-	var	row = [];
-	
 	if (ordered) {
-		row = row.concat(list);
-		
+		row = list;
+
 	} else {
-		each(list, function(item,index) {
-			var file = _meta_[item];
-			if(file && file.mods) {
-				row.push(item);
-				
+		each(list, function(item, index) {
+			var file = _remoteModules_[item];
+
+			// remote module that contains mod attribute don't "execute"
+			// when loaded, so it dones't depend other remote module yet. 
+			if (file && file.mods) {
+				row.push(item)
+
 			} else {
 				col.push(item);
 			}
 		});
 	}
-	
-	console.log('row : '+row);
-	console.log('col : '+col);
-	
+
+	console.log('row: ' + row);
+	console.log('col: ' + col);
 	loadRowColumn(row, col, function() {
 		thread.f = [];
 		processThread(thread, true);
-	});
+	})
 }
 
-function fileDepend(files) {
+//calculate depends for remote module
+function remoteModuleDepend(file) {
 	var ret = [];
-	var	processed = {};
-				
-	var p=function(f) {
+	var processed = {};
+
+	var process = function(f) {
 		var fobj;
-		
+		var requires;
 		if (processed[f]) {
 			return;
 		}
 		processed[f] = true;
-		
-		fobj = _meta_[f];
-		if (fobj && fobj.requires) {
-			each(fobj.requires,p);
+		fobj = _remoteModules_[f];
+		if ( requires = (fobj && fobj.requires)) {
+			each(requires, process);
 		}
-		
-		ret.push(f);		
+		ret.push(f);
 	}
-	each(files, p);
+	
+	each(file, process);
 	return ret;
 }
 
-function attachMod(thread) {
+function attachModule(thread) {
 	var context = thread.cx;
-	var	callback = thread.cb;
-	var	ret = [];
-	var	mods = _mods_;
-	var	processed = {};
-				
-	var p = function(n) {
+	var callback = thread.cb;
+	var ret = [];
+	var mods = _modules_;
+	var processed = {};
+
+	var process = function(n) {
 		var mod;
-		if (processed[n]) {
+		if (processed[mod]) {
 			return;
 		}
 		processed[n] = true;
-		
-		mod=mods[n];	
+		mod = mods[n];
+
 		if (mod && mod.details.requires) {
-			each(mod.details.requires, p);
+			each(mod.details.requires, process);
 		}
-		
-		if (mod && ! isFile(n)) {
+		if (mod && ! isRomteModule(n)) {
 			ret.push(n);
 		}
 	};
-		
-	each(thread.mods, p);
 
+	each(thread.mods, process);
 	context._attach(ret);
-
 	callback && callback(context);
-	
 	delete _thread_[thread.id];
 }
 
-//addFile('file-name',{path:'test1.php',requires:['lib.php'],mods:['t1-1','t1-2']})
-//addFile({'file-name':{...},'file-name-other':{...}})
-function addFile(name, info){
+function addRemoteModule(name, info) {
 	var p;
 	var path;
-	
-	if(isObject(name)) {
-		for(p in name){
-			if(name.hasOwnProperty(p)){
-				addFile(p, name[p]);
-			}
+
+	if (isObject(name)) {
+		for (p in name) {
+			addRemoteModule(p, name[p]);
 		}
 		return;
 	}
-	
 	path = info.path;
 	info.path = rFullpath.test(path) ? path : _config_.base + path;
-	_meta_[name] = info;
+	_remoteModules_[name] = info;
 }
 
-function addMod(name, fn, details){
+function addModule(name, fn, details) {
 	var oq;
-	
 	details = details || {};
 	oq = details.requires || [];
 	details.requires = _config_.util.concat(oq);
-	//remove prefix 
+	//remove prefox
 	name = name.replace(rModuleName, '$1');
-	
-	_mods_[name] = {
-		name:  name,
+
+	_modules_[name] = {
+		name: name, 
 		fn: fn,
 		details: details
-	};
+	}
 }
 
+// --- Class Boom ---
 
 function Boom() {
-	var boom = this;
-	if (! boom instanceof Boom) {
+	if (! (this instanceof Boom)) {
 		return new Boom();
 	}
-	boom._init();
+	this._init();
 }
 
-proto = {
-	_init: function(){
-		if (! Boom.Env) {
-			Boom.Env={
-				_attached: {},
-				_cidx: +new Date(),
-				_mods: _mods_,
-				_meta: _meta_,
-				_thread: _thread_
-			};
+bproto = {
+	_init: function() {
+		Boom.Env = Boom.Env || {
+			attached: {},
+			cidx: + new Date(),
+			mods: _modules_,
+			rmods: _remoteModules_,
+			thread: _thread_,
+			config: _config_
 		}
-		
-		if(!this.Env) {
-			this.Env = {
-				_attached: {}
-			};
+		this.Env = this.Env || {
+			attached: {}
 		}
 	},
 
 	//generate uniqute id
 	guid: function() {
-		return 'B'+(++Boom.Env._cidx).toString(36);
+		return 'B' + (++ Boom.Env.cidx).toString(36);
 	},
 
 	//add module or file
 	add: function() {
-		var args = [].slice.call(arguments,0);
-		//remote modules 
-		if(args.length == 1 && isObject(args[0])) {
-			addFile(args[0]);
-			
-		}else if (typeof args[1] == 'function') {
-			addMod.apply(this, args);
-			
+		var args = [].slice.call(arguments, 0);
+		if (args.length == 1 && isObject(args[0])) {
+			addRemoteModule(args[0]);
+
+		} else if (typeof args[1] == 'function') {
+			addModule.apply(this, args);
+
 		} else {
-			addFile.apply(this, args);
+			addRemoteModule.apply(this, args);
 		}
 	},
 	
@@ -558,14 +558,14 @@ proto = {
 	},
 
 	use: function() {
-		var args = [].slice.call(arguments,0);
-		var	len = args.length;
-		var	threadId = this.guid();
-		var	callback;
+		var args = [].slice.call(arguments, 0);
+		var len = args.length;
+		var threadId = this.guid();
+		var callback;
+		var thread
 
-		callback = (typeof args[len-1] == 'function') ? args.pop() : null;
-		
-		_thread_[threadId] = {
+		callback = typeof args[len-1] == 'function' ? args.pop() : null;
+		thread = _thread_[threadId] = {
 			id: threadId,
 			cb: callback,
 			mods: args,
@@ -573,48 +573,44 @@ proto = {
 			f: [],
 			cx: this
 		};
-		processThread(_thread_[threadId]);
-		return this;
+		processThread(thread);
 	},
 
-	_attach:function(ar){
-		var mods = _mods_;
-		var	attached = this.Env._attached;
-		var	self = this;
+	_attach: function(ar) {
+		var mods = _modules_;
+		var attached = this.Env.attached;
+		var i = 0;
+		var mod;
 
-		each(ar, function(item) {
-			if (! attached[item]) {
-				mods[item].fn(self);
-				attached[item] = true;
-			}
-		});
+		for(; mod = ar[i]; i++) {
+			! attached[mod] && mods[mod].fn(this);
+			attached[mod] = true;
+		}
 	},
 	
 	//Boom.register('people.name',100);
 	//Boom.people.name===100 ture;
-	register:function(ns, value){
-		var obj=this;
-		var	path=ns.split('.');
-		var	i=0;
-		var	len=path.length;
-		var	p;
-						
+	register: function(ns, value) {
+		var obj = this;
+		var path = ns.split('.');
+		var i = 0;
+		var len = path.length;
+		var p;
+
 		for (; i < len; i++) {
-			p=path[i];
-			
-			if (i == len-1) {
-				if(obj[p]) {
-					throw 'register has failed['+ns+']';
+			p = path[i];
+			if (i == len - 1) {
+				if (obj[p]) {
+					throw 'register has failed[' + ns + ']'
 				}
-				obj[p] = value;
+				obj[p] = obj[p] || {};
+				obj = obj[[]]
 			}
-			obj[p] = obj[p] || {};
-			obj = obj[p];
 		}
 		return obj;
 	},
-	
-	config:function(key, value) {
+
+	config: function(key, value) {
 		if (isObject(key)) {
 			mix(_config_, key, true);
 			
@@ -626,27 +622,26 @@ proto = {
 		}
 	},
 
+	//for debug
+	oldBrowser: function() {
+		ordered = false;
+	},
+	//for debug end
 	mix: mix,
 	merge: merge,
 	extend: extend
-
 };
 
-Boom.prototype = proto;
-
-mix(Boom, proto);
-
+Boom.prototype = bproto;
+mix(Boom, bproto);
 Boom._init();
-
 win[symbol] = win.CN6 = Boom;
 
 if (win.location.search.indexOf('debug') > -1 || doc.cookie.indexOf('debug=') > -1) {
 	_config_.debug = true;
 }
 
-})(window);
 
-
-
+})(window, document)
 
 
