@@ -57,7 +57,7 @@ var LOADING = 1;
 var LOADED = 2;
 
 // local modules
-// contains some information about name, factory function and depends information
+// contains some information about name, factory function and depends 
 var _modules_ = {};
 
 // remote modules is a file that not yet load and execute
