@@ -18,6 +18,12 @@
 
 <script type="text/javascript">
 
+asyncTest('namespace', function() {
+	Boom.register('a.b.c', {});
+	ok(typeof Boom.a.b.c == 'object');
+	start();
+});
+
 asyncTest('add local module and use it', 3, function() {
 	Boom.add('local-module', function(C) {
 		ok(C === Boom, 'use success by Boom');

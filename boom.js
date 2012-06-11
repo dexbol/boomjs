@@ -1,4 +1,4 @@
-/**@license Boom.js v5.0.0 , a javascript loader and manager | Any License You Want */
+/**@license Boom.js v5.0.1 , a javascript loader and manager | Any License You Want */
 
 
 
@@ -8,7 +8,7 @@ var LOADING = 1;
 var LOADED = 2;
 
 // local modules
-// contains some information about name, factory function and depends 
+// contains some information about name, factory function and requirement module
 var _modules_ = {};
 
 // remote modules is a file that not yet load and execute
@@ -541,8 +541,10 @@ bproto = {
 				if (obj[p]) {
 					throw 'register has failed[' + ns + ']'
 				}
+				obj[p] = value;
+			} else {
 				obj[p] = obj[p] || {};
-				obj = obj[[]]
+				obj = obj[p];				
 			}
 		}
 		return obj;
