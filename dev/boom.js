@@ -1,4 +1,4 @@
-/**@license Boom.js v5.0.1 , a javascript loader and manager | Any License You Want */
+/**@license Boom.js v5.0.2 , a javascript loader and manager | Any License You Want */
 
 //for debug
 void function(win, doc) {
@@ -188,7 +188,7 @@ function extend(r, s, px, sx) {
     return r;
 }
 
-function isRomteModule(name) {
+function isRemoteModule(name) {
 	return (_remoteModules_[name] || rFiletype.test(name)) && ! _modules_[name];
 }
 
@@ -360,7 +360,7 @@ function processThread(thread, fromLoader) {
 		console.log(modName);
 		processed[modName] = true;
 
-		if (isRomteModule(modName)) {
+		if (isRemoteModule(modName)) {
 			if (! (_files_[modName] && _files_[modName].s == LOADED)) {
 				loadList.push(modName);
 				lost.push(modName);				
@@ -466,7 +466,7 @@ function attachModule(thread) {
 		if (mod && mod.details.requires) {
 			each(mod.details.requires, process);
 		}
-		if (mod && ! isRomteModule(n)) {
+		if (mod && ! isRemoteModule(n)) {
 			ret.push(n);
 		}
 	};
