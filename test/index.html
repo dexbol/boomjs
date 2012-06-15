@@ -24,7 +24,7 @@ asyncTest('namespace', function() {
 	start();
 });
 
-asyncTest('add module that it\'s name has prefix', 2, function() {
+asyncTest('add local module that it\'s name has prefix', 2, function() {
 	Boom.add('!prefix-name', function(C) {
 		C['prefix-name'] = true;
 	})

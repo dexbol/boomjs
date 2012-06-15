@@ -1,4 +1,4 @@
-/**@license Boom.js v5.0.3 , a javascript loader and manager | Any License You Want */
+/**@license Boom.js v5.0.4 , a javascript loader and manager | Any License You Want */
 
 //for debug
 void function(win, doc) {
@@ -98,7 +98,7 @@ var symbol = jsSelf.getAttribute('data-symbol') || 'Boom';
 var ordered = doc.createElement('script').async === true;
 var rFiletype = /\.(\w+)(\?|$)/;
 var rFullpath = /^(\/|http)/;
-var rModuleNameHasPrefix = /^\w*?!(\S+)$/;
+var rModuleName = /^(?:\w*?(?=\!)!?)?([-_\.\w]+)$/;
 
 function isObject(obj) {
 	return obj && Object.prototype.toString.call(obj) == '[object Object]'; 
@@ -498,7 +498,7 @@ function addModule(name, fn, details) {
 	oq = details.requires || [];
 	details.requires = _config_.util.concat(oq);
 	//remove prefix
-	name = name.replace(rModuleNameHasPrefix, '$1');
+	name = name.replace(rModuleName, '$1');
 
 	_modules_[name] = {
 		name: name, 
