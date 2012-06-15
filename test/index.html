@@ -24,6 +24,25 @@ asyncTest('namespace', function() {
 	start();
 });
 
+asyncTest('add module that it\'s name has prefix', 2, function() {
+	Boom.add('!prefix-name', function(C) {
+		C['prefix-name'] = true;
+	})
+
+	Boom.use('prefix-name', function(C) {
+		ok(C['prefix-name'] === true);
+	});
+
+	Boom.add('pre!prefix', function(C) {
+		C['prefix'] = true;
+	});
+
+	Boom.use('prefix', function(C) {
+		ok(C['prefix'] === true);
+	})
+	start();
+});
+
 asyncTest('add local module and use it', 3, function() {
 	Boom.add('local-module', function(C) {
 		ok(C === Boom, 'use success by Boom');
