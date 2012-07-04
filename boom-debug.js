@@ -1,4 +1,4 @@
-/**@license Boom.js v5.0.4 , a javascript loader and manager | Any License You Want */
+/**@license Boom.js v5.0.5 , a javascript loader and manager | Any License You Want */
 
 //for debug
 void function(win, doc) {
@@ -155,7 +155,7 @@ function merge() {
 
 function extend(r, s, px, sx) {
 	if (! s || ! r) {
-		return;
+		return r;
 	}
 
 	var OP = Object.prototype;
@@ -168,7 +168,7 @@ function extend(r, s, px, sx) {
 	var rp = O(sp);
 	r.prototype = rp;
 	rp.constructor = r;
-	r.superclass = s;
+	r.superclass = sp;
 
     // assign constructor property
     if (s !== Object && sp.constructor === OP.constructor) {
