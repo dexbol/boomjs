@@ -99,9 +99,17 @@ module('remote module', {
 			'css': {
 				path: 'a.css'
 			},
+			'remote_need_local': {
+				path: 'remote_need_local.js',
+				requires: ['local_module_remote_need']
+			},
 			'timeout': {
 				path: 'timeout.php'
 			}
+		});
+
+		Boom.add('local_module_remote_need', function(C){
+			C.local_module_remote_need = true;
 		});
 	}
 })
@@ -139,6 +147,12 @@ asyncTest('use module that depends css module', 1, function() {
 	});
 });
 
+asyncTest('remote module requires local module', 1, function() {
+	Boom.use('remote_need_local', function(C) {
+		ok(C.local_module_remote_need === true);
+		start();
+	})
+});
 
 asyncTest('remot module timeout callback', 1, function() {
 	Boom.config('fail', function() {

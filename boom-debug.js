@@ -1,4 +1,4 @@
-/**@license Boom.js v5.0.5 , a javascript loader and manager | Any License You Want */
+/**@license Boom.js v5.0.6 , a javascript loader and manager | Any License You Want */
 
 //for debug
 void function(win, doc) {
@@ -433,7 +433,7 @@ function remoteModuleDepend(file) {
 	var process = function(f) {
 		var fobj;
 		var requires;
-		if (processed[f]) {
+		if (processed[f] || ! isRemoteModule(f)) {
 			return;
 		}
 		processed[f] = true;
@@ -472,6 +472,7 @@ function attachModule(thread) {
 	};
 
 	each(thread.mods, process);
+	console.log('>>>>>attach ' + thread.id + ' : ' + ret.join())
 	context._attach(ret);
 	callback && callback(context);
 	delete _thread_[thread.id];
