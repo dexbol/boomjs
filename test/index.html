@@ -24,6 +24,18 @@ asyncTest('namespace', function() {
 	start();
 });
 
+asyncTest('local module that define by return value', function() {
+	Boom.add('namespace.object', function() {
+		return {
+			'name': 'dexbol'
+		}
+	});
+	Boom.use('namespace.object', function(C) {
+		ok(C.namespace.object.name === 'dexbol');
+		start();
+	})
+})
+
 asyncTest('add local module that it\'s name has prefix', 2, function() {
 	Boom.add('!prefix-name', function(C) {
 		C['prefix-name'] = true;

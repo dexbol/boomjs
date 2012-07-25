@@ -1,4 +1,4 @@
-/**@license Boom.js v5.0.6 , a javascript loader and manager | Any License You Want */
+/**@license Boom.js v5.1 , a javascript loader and manager | Any License You Want */
 
 
 
@@ -32,7 +32,6 @@ var _config_ = {
 	'util': [],
 	'fail': function(filename, url) {}
 }
-var bproto;
 
 // the boom.js tag , tech form Do.js v2
 var jsSelf = function() {
@@ -51,11 +50,11 @@ var rFiletype = /\.(\w+)(\?|$)/;
 var rFullpath = /^(\/|http)/;
 var rModuleName = /^(?:\w*?(?=\!)!?)?([-_\.\w]+)$/;
 
-function isObject(obj) {
+var isObject = function(obj) {
 	return obj && Object.prototype.toString.call(obj) == '[object Object]'; 
 }
 
-function each(ar, fn) {
+var each = function(ar, fn) {
 	var i = 0;
 	var len = ar.length;
 	for (; i<len; i++) {
@@ -64,7 +63,7 @@ function each(ar, fn) {
 }
 
 //the three functions followed from YUI3
-function mix(r, s, ov, wl, merge) {
+var mix = function(r, s, ov, wl, merge) {
     var i, l, p;
 
     if (wl && wl.length) {
@@ -92,7 +91,7 @@ function mix(r, s, ov, wl, merge) {
     return r;
 }
 
-function merge() {
+var merge = function() {
     var a = arguments;
     var o = {};
     var i = 0;
@@ -104,7 +103,7 @@ function merge() {
     return o;
 }
 
-function extend(r, s, px, sx) {
+var extend = function(r, s, px, sx) {
 	if (! s || ! r) {
 		return r;
 	}
@@ -139,11 +138,11 @@ function extend(r, s, px, sx) {
     return r;
 }
 
-function isRemoteModule(name) {
+var isRemoteModule = function(name) {
 	return (_remoteModules_[name] || rFiletype.test(name)) && ! _modules_[name];
 }
 
-function searchInRemoteModule(modName) {
+var searchInRemoteModule = function(modName) {
 	var meta = _remoteModules_;
 	var f;
 	var mods;
@@ -163,7 +162,7 @@ function searchInRemoteModule(modName) {
 }
 
 //load file parallelly
-function loadRow(list, callback) {
+var loadRow = function(list, callback) {
 	var flag = list.length;
 	var file;
 	var cb = function() {
@@ -184,7 +183,7 @@ function loadRow(list, callback) {
 }
 
 //load file one by one.
-function loadColumn(list, callback) {
+var loadColumn = function(list, callback) {
 	var cb = function() {
 		if (list.length == 0) {
 			callback && callback();
@@ -196,7 +195,7 @@ function loadColumn(list, callback) {
 	cb();
 }
 
-function loadRowColumn(row, column, callback) {
+var loadRowColumn = function(row, column, callback) {
 	var row_result = false;
 	var column_result = false;
 	var complete = function() {
@@ -216,7 +215,7 @@ function loadRowColumn(row, column, callback) {
 	});
 }
 
-function loadFile(name, callback) {
+var loadFile = function(name, callback) {
 	var metaFile = _remoteModules_;
 	var src = metaFile[name] ? metaFile[name].path : name;
 	var type = rFiletype.exec(src)[1] == 'css' ? 'css' : 'js';
@@ -285,7 +284,7 @@ function loadFile(name, callback) {
 	file.s = LOADING;
 }
 
-function processThread(thread, fromLoader) {
+var processThread = function(thread, fromLoader) {
 	var loadList = thread.f;
 	var count = thread.count;
 	var lost = thread.lost;
@@ -334,7 +333,7 @@ function processThread(thread, fromLoader) {
 	}
 }
 
-function loadThread(thread) {
+var loadThread = function(thread) {
 	var list = remoteModuleDepend(thread.f);
 	var col = [];
 	var row = [];
@@ -364,7 +363,7 @@ function loadThread(thread) {
 }
 
 //calculate depends for remote module
-function remoteModuleDepend(file) {
+var remoteModuleDepend = function(file) {
 	var ret = [];
 	var processed = {};
 
@@ -386,7 +385,7 @@ function remoteModuleDepend(file) {
 	return ret;
 }
 
-function attachModule(thread) {
+var attachModule = function(thread) {
 	var context = thread.cx;
 	var callback = thread.cb;
 	var ret = [];
@@ -415,7 +414,7 @@ function attachModule(thread) {
 	delete _thread_[thread.id];
 }
 
-function addRemoteModule(name, info) {
+var addRemoteModule = function(name, info) {
 	var p;
 	var path;
 
@@ -430,7 +429,7 @@ function addRemoteModule(name, info) {
 	_remoteModules_[name] = info;
 }
 
-function addModule(name, fn, details) {
+var addModule = function(name, fn, details) {
 	var oq;
 	details = details || {};
 	oq = details.requires || [];
@@ -447,14 +446,14 @@ function addModule(name, fn, details) {
 
 // --- Class Boom ---
 
-function Boom() {
+var Boom = function() {
 	if (! (this instanceof Boom)) {
 		return new Boom();
 	}
 	this._init();
 }
 
-bproto = {
+var bproto = {
 	_init: function() {
 		Boom.Env = Boom.Env || {
 			attached: {},
@@ -519,9 +518,15 @@ bproto = {
 		var attached = this.Env.attached;
 		var i = 0;
 		var mod;
+		var result;
 
 		for(; mod = ar[i]; i++) {
-			! attached[mod] && mods[mod].fn(this);
+			if (attached[mod]) {
+				continue;
+			}
+			if (result = mods[mod].fn(this)) {
+				this.register(mod, result);
+			}
 			attached[mod] = true;
 		}
 	},
@@ -575,7 +580,6 @@ win[symbol] = win.CN6 = Boom;
 if (win.location.search.indexOf('debug') > -1 || doc.cookie.indexOf('debug=') > -1) {
 	_config_.debug = true;
 }
-
 
 })(window, document)
 
