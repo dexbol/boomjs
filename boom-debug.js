@@ -1,4 +1,4 @@
-/**@license Boom.js v5.1 , a javascript loader and manager | Any License You Want */
+/**@license Boom.js v5.1.1 , a javascript loader and manager | Any License You Want */
 
 //for debug
 void function(win, doc) {
@@ -643,12 +643,14 @@ var bproto = {
 Boom.prototype = bproto;
 mix(Boom, bproto);
 Boom._init();
-win[symbol] = win.CN6 = Boom;
+
+if (!win[symbol]) {
+	win[symbol] = win.CN6 = Boom;
+}
 
 if (win.location.search.indexOf('debug') > -1 || doc.cookie.indexOf('debug=') > -1) {
 	_config_.debug = true;
 }
-
 })(window, document)
 
 
