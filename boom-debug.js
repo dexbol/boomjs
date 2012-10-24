@@ -1,4 +1,4 @@
-/**@license Boom.js v5.1.1 , a javascript loader and manager | Any License You Want */
+/**@license Boom.js v5.1.2 , a javascript loader and manager | Any License You Want */
 
 //for debug
 void function(win, doc) {
@@ -69,7 +69,7 @@ var _modules_ = {};
 // module will be used automatically after remote module loaded.
 var _remoteModules_ = {};
 
-// contains files that loaded data
+// files holder, the key is a file's src or remote module's name
 var _files_ = {};
 
 // thread object holder
@@ -268,12 +268,14 @@ var loadFile = function(name, callback) {
 	var metaFile = _remoteModules_;
 	var src = metaFile[name] ? metaFile[name].path : name;
 	var type = rFiletype.exec(src)[1] == 'css' ? 'css' : 'js';
-	var file = _files_[name];
+	// because mutiple remote modules maybe had the same src attribute
+	// so, we hold src and name both for avoid load duplicate files
+	var file = _files_[src] || _files_[name];
 	var node;
 
 	//shorter property h:handler,s:status
 	if (! file) {
-		file = _files_[name] = {
+		file = _files_[name] = _files_[src] = {
 			h: [callback], 
 			s: 0
 		};
