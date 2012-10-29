@@ -1,4 +1,4 @@
-/**@license Boom.js v5.1.2 , a javascript loader and manager | Any License You Want */
+/**@license Boom.js v5.1.3 , a javascript loader and manager | Any License You Want */
 
 //for debug
 void function(win, doc) {
@@ -188,7 +188,7 @@ var extend = function(r, s, px, sx) {
 }
 
 var isRemoteModule = function(name) {
-	return (_remoteModules_[name] || rFiletype.test(name)) && ! _modules_[name];
+	return (_remoteModules_[name] || rFullpath.test(name)) && ! _modules_[name];
 }
 
 var searchInRemoteModule = function(modName) {
