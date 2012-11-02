@@ -1,4 +1,4 @@
-/**@license Boom.js v5.1.3 , a javascript loader and manager | Any License You Want */
+/**@license Boom.js v5.1.4 , a javascript loader and manager | Any License You Want */
 
 
 
@@ -263,8 +263,11 @@ var loadFile = function(name, callback) {
 	}, _config_.timeout);
 
 	node.onload = node.onreadystatechange = function() {
-		if (! this.readyState || this.readyState == 'loaded' 
-		  || this.readyState == 'complete') {
+		// when the script's readyState is loaded in IE 10 , it has been downloaded 
+		// but has not executed yet.
+		// @see https://github.com/headjs/headjs/pull/191
+		if (!this.readyState || (ordered ? this.readyState == 'complete' :  
+				this.readyState == 'loaded' || this.readyState == 'complete')) {
 
 			var handler = file.h;
 			var fn;
@@ -586,5 +589,4 @@ if (win.location.search.indexOf('debug') > -1 || doc.cookie.indexOf('debug=') > 
 	_config_.debug = true;
 }
 })(window, document)
-
 
