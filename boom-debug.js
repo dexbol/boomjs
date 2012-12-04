@@ -12,7 +12,7 @@ void function(win, doc) {
 	var i = 0;
 	var noop = function() {};
 	var console = {};
-	var oldConsole = win.console;
+	var oldConsole = win.console || {};
 	for (; i < methods.length; i++) {
 		method = methods[i]
 		console[method] = typeof oldConsole[method] == 'function' ? oldConsole[method] : noop;

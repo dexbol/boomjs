@@ -3,7 +3,6 @@ import os
 from shutil import copyfile
 import boombuilder
 
-builder = boombuilder.Builder()
 boom = open('boom.js')
 lines = boom.readlines()
 newContent = []
@@ -28,5 +27,5 @@ boom = open('..' + os.sep + 'boom.js', 'w')
 boom.write(''.join(newContent))
 boom.close()
 copyfile('boom.js', '..' + os.sep + 'boom-debug.js')
-builder.compile_js('..' + os.sep + 'boom.js', '..' + os.sep + 'boom-min.js')
+boombuilder.compile_js('..' + os.sep + 'boom.js', '..' + os.sep + 'boom-min.js')
 
