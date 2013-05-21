@@ -3,9 +3,10 @@
     header('Content-Type','text/javascript');
 	header('Cache-Control','max-age=120');
 	sleep(1);
+
 ?>
 */
 
-Boom.add('module_1', function(C) {
-	C.module_1 = true;
-});
+if (URL_3) {
+	var NO_MODULE_3 = true;
+}

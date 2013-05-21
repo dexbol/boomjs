@@ -18,13 +18,28 @@
 
 <script type="text/javascript">
 
+module('util');
+
 asyncTest('namespace', function() {
 	Boom.register('a.b.c', {});
 	ok(typeof Boom.a.b.c == 'object');
 	start();
 });
 
-asyncTest('local module that define by return value', function() {
+asyncTest('config', function() {
+	Boom.config({
+		'test': 'test'
+	});
+	ok(Boom.Env.config.test == 'test');
+	Boom.config('test', 'hi');
+	ok(Boom.Env.config.test == 'hi');
+	delete Boom.config.test;
+	start()
+});
+
+module('closure-module');
+
+asyncTest('add features by return value in closure-module', function() {
 	Boom.add('namespace.object', function() {
 		return {
 			'name': 'dexbol'
@@ -34,28 +49,9 @@ asyncTest('local module that define by return value', function() {
 		ok(C.namespace.object.name === 'dexbol');
 		start();
 	})
-})
-
-asyncTest('add local module that it\'s name has prefix', 2, function() {
-	Boom.add('!prefix-name', function(C) {
-		C['prefix-name'] = true;
-	})
-
-	Boom.use('prefix-name', function(C) {
-		ok(C['prefix-name'] === true);
-	});
-
-	Boom.add('pre!prefix', function(C) {
-		C['prefix'] = true;
-	});
-
-	Boom.use('prefix', function(C) {
-		ok(C['prefix'] === true);
-	})
-	start();
 });
 
-asyncTest('add local module and use it', 3, function() {
+asyncTest('add closure-module then use it', 3, function() {
 	Boom.add('local-module', function(C) {
 		ok(C === Boom, 'use success by Boom');
 	});
@@ -72,18 +68,7 @@ asyncTest('add local module and use it', 3, function() {
 	start();
 });
 
-asyncTest('config', function() {
-	Boom.config({
-		'test': 'test'
-	});
-	ok(Boom.Env.config.test == 'test');
-	Boom.config('test', 'hi');
-	ok(Boom.Env.config.test == 'hi');
-	delete Boom.config.test;
-	start()
-});
-
-module('remote module', {
+module('file-module', {
 	setup: function() {
 		Boom.config('base', 'asset/');
 		Boom.add({
@@ -104,6 +89,9 @@ module('remote module', {
 			'no_module_2': {
 				path: 'no_module_2.js'
 			},
+			'no_module_3': {
+				path: 'no_module_3.js'
+			},
 			'need_css': {
 				path: 'need_css.js',
 				requires: ['css']
@@ -111,41 +99,45 @@ module('remote module', {
 			'css': {
 				path: 'a.css'
 			},
-			'remote_need_local': {
-				path: 'remote_need_local.js',
-				requires: ['local_module_remote_need']
+			'file_need_closure': {
+				path: 'file_need_closure.js',
+				requires: ['closure_module_file_module_needed']
 			},
 			'timeout': {
-				path: 'timeout.php'
+				path: 'timeout.js'
 			}
 		});
 
-		Boom.add('local_module_remote_need', function(C){
-			C.local_module_remote_need = true;
+		Boom.add('closure_module_file_module_needed', function(C){
+			C.closure_module_file_module_needed = true;
 		});
 	}
-})
+});
 
-asyncTest('add remote module', function() {
+asyncTest('add file-module', function() {
 	ok(typeof Boom.Env.rmods['contains_one_module'] == 'object');
 	start();
 });
 
-asyncTest('use module that in remote module', 1, function() {
+asyncTest('use closure-module that not loaded yet', 1, function() {
 	Boom.use('module_3', function(C) {
-		ok(C.module_1 == true && C.module_2 ===true && C.module_3 === true);
+		ok(C.module_1 === true && C.module_2 === true && C.module_3 === true);
 		start();
 	});
 });
 
-asyncTest('use module that it\'s name is as same as remote module that contains it', 1, function() {
+asyncTest('use file-module that only contain only one closure-module' + 
+	'and they had same name', 1, function() {
+
 	Boom.use('contains_same_name_module', function(C) {
 		ok(C.contains_same_name_module == true);
 		start();
 	});
 });
 
-asyncTest('use remote modules that don\'t contain local module, they could be ordered execute', 1, function() {
+asyncTest('use file-module that don\'t contain closure-module,' + 
+	' they could be ordered execute', 1, function() {
+
 	Boom.use('no_module_1', 'no_module_2', function() {
 		ok(NO_MODULE_1 === true && NO_MODULE_2 === true);
 		start();
@@ -159,14 +151,28 @@ asyncTest('use module that depends css module', 1, function() {
 	});
 });
 
-asyncTest('remote module requires local module', 1, function() {
-	Boom.use('remote_need_local', function(C) {
-		ok(C.local_module_remote_need === true);
+asyncTest('file-module requires closure-module', 1, function() {
+	Boom.use('closure_module_file_module_needed', function(C) {
+		ok(C.closure_module_file_module_needed === true);
 		start();
 	})
 });
 
-asyncTest('remot module timeout callback', 1, function() {
+asyncTest('load file-module by url directly, execute in order', 1, function() {
+	Boom.use('asset/url_1.js', 'asset/url_2.js', function() {
+		ok(URL_1 === true && URL_2 === true);
+		start();
+	});
+});
+
+asyncTest('load various file-module by name or url, execute in order', 1, function() {
+	Boom.use('asset/url_3.js', 'no_module_3', function() {
+		ok(NO_MODULE_3 === true);
+		start();
+	})
+});
+
+asyncTest('file-module timeout callback', 1, function() {
 	Boom.config('fail', function() {
 		ok(true);
 		start();
@@ -174,6 +180,7 @@ asyncTest('remot module timeout callback', 1, function() {
 	Boom.config('timeout', 1000);
 	Boom.use('timeout');
 });
+
 
 
 

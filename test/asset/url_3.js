@@ -1,8 +1,10 @@
 /**@license
 <?php
     header('Content-Type','text/javascript');
-	sleep(2);
+	header('Cache-Control','max-age=120');
+	sleep(4);
+
 ?>
 */
 
-var NO_MODULE_1 = true;
+var URL_3 = true;

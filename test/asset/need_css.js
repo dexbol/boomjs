@@ -4,7 +4,7 @@
 	header('Cache-Control','max-age=120');	
 	header("Content-Type", "application/x-javascript");
 	//usleep(80000);
-	sleep(4);
+	sleep(1);
 ?>
 */
 
