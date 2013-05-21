@@ -1,6 +1,6 @@
-/**@license Boom.js v5.1.4 , a javascript loader and manager | Any License You Want */
+/** @license Boom.js v6.0.0 , a javascript loader and manager | Any License You Want */
 
-//for debug
+// for debug
 void function(win, doc) {
 	if (win.console && win.console.group) {
 		return;
@@ -48,60 +48,91 @@ void function(win, doc) {
 	});
 
 }(window, document);
-//for debug end
+// for debug end
 
 
-(function(win, doc) {
+;(function(win, doc) {
 
 var LOADING = 1;
 var LOADED = 2;
 
-// local modules
-// contains some information about name, factory function and requirement module
-var _modules_ = {};
+// closure-module: 
+// It's a piece of code isolation by closure that created by Boom.use method.
+// 
+// This object contains some information about closure-module's name, 
+// factory function and required modules. e.g.
+// {
+// 		"name": "closure-module's name",
+// 		"fn": "factory function",
+// 		"details": {
+// 			"requires": ["dependence module"]
+// 		}
+// }
+var closureModule = {};
 
-// remote modules is a file that not yet load and execute
-// normally, a remote module contains one or mutiple local module
-// remote module does't contain any local module sometimes. e.g.
+// file-module:
+// File-module is a file that is not load and execute yet.
+// Normally, a file-module contains one or mutiple closure-module.
+// But in sometimes it does't contain any closure-module, e.g.
 // a jQuery file or other third party library.
-// if a remote module contains only one local module and the local module's name 
-// is as same as remote module's name, when you use the remote module , the local 
-// module will be used automatically after remote module loaded.
-var _remoteModules_ = {};
+// If a file-module contains only one closure-module and the closure-module's name 
+// is the same as file-module's name (normally, the file name), 
+// the closure-module will be executed automatically after file-module loaded,
+// if you use a file-module.
+// 
+// This object holds file-module object that contains file-module's path, 
+// closure-module that it contained, and required modules.
+// In fact, file-module object is not necessary. In other word, 
+// you can use a file-module by a url directly, so you don't need use Boom.add method
+// to create a file-module object then use it.
+// 
+// normally, a file-module object like this:
+// {
+// 		"path": "project/girl.js",
+// 		"mods": ["girl.kiss", "girl.strip"],
+// 		"requires": ["dependence modules"]
+// }
+var fileModule = {};
 
-// files holder, the key is a file's src or remote module's name
-var _files_ = {};
+// file object holder, the key is file-module's name or just it's url
+var files = {};
 
 // thread object holder
-var _thread_ = {};
-var _config_ = {
+// Each time call Boom.use, a thread object will be create.
+// It contains information about thread id, modules that needs
+// and so on.
+var threads = {};
+var config = {
 	'timeout': 12000,
 	'base': '',
-	'debug': false,
-	'util': [],
 	'fail': function(filename, url) {}
 }
 
-// the boom.js tag , tech form Do.js v2
+// the boom.js tag
+// If you load boom.js by other loader, the tag will be incorrect.
+// @see https://developer.mozilla.org/en-US/docs/Web/API/document.currentScript
+// @see http://msdn.microsoft.com/en-us/library/ie/ms534359(v=vs.85).aspx
 var jsSelf = function() {
 	var scripts = doc.getElementsByTagName('script');
 	return scripts[scripts.length - 1];
 }();
 
-// global variable that a reference to Boom
+// Global variable that refer to Boom.
 var symbol = jsSelf.getAttribute('data-symbol') || 'Boom';
 
 // @see http://labjs.com/documentation.php
 // @see http://wiki.whatwg.org/wiki/Dynamic_Script_Execution_Order
 // @see http://hsivonen.iki.fi/script-execution/
 var ordered = doc.createElement('script').async === true;
-var rFiletype = /\.(\w+)(\?|$)/;
+var rPath = /.+?\.(js|css)(?:\?.*)?$/
 var rFullpath = /^(\/|http)/;
-var rModuleName = /^(?:\w*?(?=\!)!?)?([-_\.\w]+)$/;
+
+
+var now = + new Date();
 
 var isObject = function(obj) {
 	return obj && Object.prototype.toString.call(obj) == '[object Object]'; 
-}
+};
 
 var each = function(ar, fn) {
 	var i = 0;
@@ -109,9 +140,9 @@ var each = function(ar, fn) {
 	for (; i<len; i++) {
 		fn(ar[i], i);
 	}
-}
+};
 
-//the three functions followed from YUI3
+// from YUI3
 var mix = function(r, s, ov, wl, merge) {
     var i, l, p;
 
@@ -127,7 +158,7 @@ var mix = function(r, s, ov, wl, merge) {
             }
         }
     } else {
-        for (i in s) { 
+        for (i in s) {
             if (s.hasOwnProperty(i)) {
                 if (merge && isObject(r[i])) {
                     mix(r[i], s[i], ov, wl, true);
@@ -138,79 +169,38 @@ var mix = function(r, s, ov, wl, merge) {
         }
     }
     return r;
+};
+
+var isFileModule = function(name) {
+	return (fileModule[name] || rPath.test(name)) && ! closureModule[name];
+};
+
+var fileModuleIsLoaded = function(name) {
+	var filemodule = fileModule[name];
+	var src = filemodule ? filemodule.path : name;
+	var fileobj = files[src];
+	
+	return !!(fileobj && fileobj.s === LOADED);
 }
 
-var merge = function() {
-    var a = arguments;
-    var o = {};
-    var i = 0;
-    var l = a.length;
-
-    for (; i<l; i++) {
-        mix(o, a[i], true);
-    }
-    return o;
-}
-
-var extend = function(r, s, px, sx) {
-	if (! s || ! r) {
-		return r;
-	}
-
-	var OP = Object.prototype;
-	var O = function (o) {
-		function F() {}
-		F.prototype = o;
-		return new F();
-	}
-	var sp = s.prototype;
-	var rp = O(sp);
-	r.prototype = rp;
-	rp.constructor = r;
-	r.superclass = sp;
-
-    // assign constructor property
-    if (s !== Object && sp.constructor === OP.constructor) {
-        sp.constructor = s;
-    }
-
-    // add prototype overrides
-    if (px) {
-        mix(rp, px, true);
-    }
-
-    // add object overrides
-    if (sx) {
-        mix(r, sx, true);
-    }
-
-    return r;
-}
-
-var isRemoteModule = function(name) {
-	return (_remoteModules_[name] || rFullpath.test(name)) && ! _modules_[name];
-}
-
-var searchInRemoteModule = function(modName) {
-	var meta = _remoteModules_;
+var searchInFileModule = function(modName) {
+	var meta = fileModule;
 	var f;
 	var mods;
 	var i;
-	var len;
 
 	for (f in meta) {
 		mods = meta[f].mods || [];
-		len = mods.length;
-		for (i = 0; i < len; i++) {
+		for (i = 0; i < mods.length; i++) {
 			if (mods[i] == modName) {
 				return f;
 			}
 		}
 	}
 	return false;
-}
+};
 
-//load file parallelly
+// Load files parallelly.
 var loadRow = function(list, callback) {
 	var flag = list.length;
 	var file;
@@ -221,7 +211,7 @@ var loadRow = function(list, callback) {
 		}
 	};
 
-	// if list is empty , just invoke callback function.
+	// If list is empty , just invoke callback function.
 	if (flag == 0) {
 		return cb();
 	}
@@ -229,9 +219,9 @@ var loadRow = function(list, callback) {
 	while (file = list.shift()) {
 		loadFile(file, cb);
 	}
-}
+};
 
-//load file one by one.
+// Load files one by one.
 var loadColumn = function(list, callback) {
 	var cb = function() {
 		if (list.length == 0) {
@@ -262,27 +252,25 @@ var loadRowColumn = function(row, column, callback) {
 		column_result = true;
 		complete();
 	});
-}
+};
 
 var loadFile = function(name, callback) {
-	var metaFile = _remoteModules_;
+	var metaFile = fileModule;
 	var src = metaFile[name] ? metaFile[name].path : name;
-	var type = rFiletype.exec(src)[1] == 'css' ? 'css' : 'js';
-	// because mutiple remote modules maybe had the same src attribute
-	// so, we hold src and name both for avoid load duplicate files
-	var file = _files_[src] || _files_[name];
+	var type = rPath.exec(src)[1] == 'css' ? 'css' : 'js';
+	var file = files[src];
 	var node;
 
-	//shorter property h:handler,s:status
+	// Shorter properties h:handler,s:status
 	if (! file) {
-		file = _files_[name] = _files_[src] = {
+		file = files[src] = {
 			h: [callback], 
 			s: 0
 		};
 	}
 
-	//http://www.phpied.com/when-is-a-stylesheet-really-loaded/
-	//http://lifesinger.org/lab/2011/load-js-css/
+	// http://www.phpied.com/when-is-a-stylesheet-really-loaded/
+	// http://lifesinger.org/lab/2011/load-js-css/
 	if (type == 'css') {
 		node = doc.createElement('link');
 		node.href = src;
@@ -308,16 +296,16 @@ var loadFile = function(name, callback) {
 	node.src = src;
 
 	file.t = win.setTimeout(function() {
-		_config_.fail(name, src);
-	}, _config_.timeout);
+		config.fail(name, src);
+	}, config.timeout);
 
 	node.onload = node.onreadystatechange = function() {
-		// when the script's readyState is loaded in IE 10 , it has been downloaded 
+		// When the script's readyState is loaded in IE 10 , it has been downloaded 
 		// but has not executed yet.
 		// @see https://github.com/headjs/headjs/pull/191
 		if (!this.readyState || (ordered ? this.readyState == 'complete' :  
 				this.readyState == 'loaded' || this.readyState == 'complete')) {
-			console.log('Loaded : ' + name);
+			console.log('Loaded : ' + src);
 
 			var handler = file.h;
 			var fn;
@@ -331,56 +319,62 @@ var loadFile = function(name, callback) {
 
 			// http://www.phpied.com/async-javascript-callbacks/
 			this.onload = this.onreadystatechange = null;
-			! _config_.debug && this.parentNode.removeChild(this);
+			this.parentNode.removeChild(this);
 		}
 	};
 
 	jsSelf.parentNode.insertBefore(node, jsSelf);
 	file.s = LOADING;
-}
+};
 
 var processThread = function(thread, fromLoader) {
-	//for debug
+	// for debug
 	if (fromLoader) {
 		console.groupEnd();
 	}
 	console.groupCollapsed('Process Thread : ' + thread.id);
-	//for debug end
+	// for debug end
 	var loadList = thread.f;
-	var count = thread.count;
 	var lost = thread.lost;
 	var list = fromLoader ? lost : thread.mods;
-	var mods = _modules_;
+	var mods = closureModule;
 	var processed = {};
 
 	var process = function(modName) {
 		var mod;
 		var file;
 		var requires;
-		if (! modName || processed[modName]) {
+
+		if (!modName || processed[modName]) {
 			return;
 		}
 
-		console.log(modName);
 		processed[modName] = true;
 
-		if (isRemoteModule(modName)) {
-			if (! (_files_[modName] && _files_[modName].s == LOADED)) {
+		// It's a file-module
+		if (isFileModule(modName)) {
+			if (!fileModuleIsLoaded(modName)) {
 				loadList.push(modName);
-				lost.push(modName);				
+				lost.push(modName);					
 			}
 
-		} else if (! (mod = mods[modName])) {
-			file = searchInRemoteModule(modName);
-			if (!file || _files_[file] && _files_[file].s == LOADED) {
+		// It's a closure-module that wat not loaded yet.
+		} else if (!(mod = mods[modName])) {
+			file = searchInFileModule(modName);
+
+			// The closure-module was not found, or the corrsponding 
+			// file-module not contain it.
+			if (!file || fileModuleIsLoaded(file)) {
 				throw new Error('Can\'t found the moudle : ' + modName);
 			}
+
 			lost.push(modName);
-			if (! processed[file]) {
+			if (!processed[file]) {
 				loadList.push(file);
 				processed[file] = true;
 			}
 
+		// closure-module was loaded and had requirement.
 		} else if (requires = mod.details.requires) {
 			each(requires, process);
 		}
@@ -391,15 +385,16 @@ var processThread = function(thread, fromLoader) {
 	if (loadList.length > 0) {
 		console.log('LoadList : ' + loadList);
 		loadThread(thread);
+
 	} else {
 		console.log('>>>>>loadList loaded ! attache ' + thread.id);
 		attachModule(thread);
+		console.groupEnd();
 	}
-	console.groupEnd();
-}
+};
 
 var loadThread = function(thread) {
-	var list = remoteModuleDepend(thread.f);
+	var list = fileModuleDependence(thread.f);
 	var col = [];
 	var row = [];
 
@@ -408,10 +403,10 @@ var loadThread = function(thread) {
 
 	} else {
 		each(list, function(item, index) {
-			var file = _remoteModules_[item];
+			var file = fileModule[item];
 
-			// remote module that contains mod attribute don't "execute"
-			// when loaded, so it dones't depend other remote module yet. 
+			// File-module that contains mod attribute should not "execute"
+			// when loaded, So it dones't depend other module. 
 			if (file && file.mods) {
 				row.push(item)
 
@@ -427,36 +422,40 @@ var loadThread = function(thread) {
 		thread.f = [];
 		processThread(thread, true);
 	})
-}
+};
 
-//calculate depends for remote module
-var remoteModuleDepend = function(file) {
+// Calculate depends for file-module
+var fileModuleDependence = function(filelist) {
 	var ret = [];
 	var processed = {};
-
 	var process = function(f) {
 		var fobj;
 		var requires;
-		if (processed[f] || ! isRemoteModule(f)) {
+
+		if (processed[f] || !isFileModule(f)) {
 			return;
 		}
+
 		processed[f] = true;
-		fobj = _remoteModules_[f];
+		fobj = fileModule[f];
+
 		if ( requires = (fobj && fobj.requires)) {
 			each(requires, process);
 		}
 		ret.push(f);
 	}
 	
-	each(file, process);
+	each(filelist, process);
 	return ret;
-}
+};
 
+// When all relevant file-module was loaded, We can execute 
+// closure-module if needed.
 var attachModule = function(thread) {
 	var context = thread.cx;
 	var callback = thread.cb;
 	var ret = [];
-	var mods = _modules_;
+	var mods = closureModule;
 	var processed = {};
 
 	var process = function(n) {
@@ -470,45 +469,43 @@ var attachModule = function(thread) {
 		if (mod && mod.details.requires) {
 			each(mod.details.requires, process);
 		}
-		if (mod && ! isRemoteModule(n)) {
-			ret.push(n);
-		}
+		mod && !isFileModule(n) && ret.push(n);
 	};
 
 	each(thread.mods, process);
 	console.log('>>>>>attach ' + thread.id + ' : ' + ret.join())
 	context._attach(ret);
 	callback && callback(context);
-	delete _thread_[thread.id];
-}
+	delete threads[thread.id];
+};
 
-var addRemoteModule = function(name, info) {
+// Add a file-module object when it contains some closure-module.
+// Thus, when you use a closure-module that not loaded, we will know
+// which file-module contained it.
+// In fact, you don't need add file-module object manually, because 
+// the builder tools will add it automailly.
+// Otherwise you can use file-module by a url directly.
+var addFileModule = function(name, info) {
 	var p;
 	var path;
 
 	if (isObject(name)) {
 		for (p in name) {
-			addRemoteModule(p, name[p]);
+			addFileModule(p, name[p]);
 		}
-		return;
+
+	} else {
+		path = info.path;
+		info.path = rFullpath.test(path) ? path : config.base + path;
+		fileModule[name] = info;
 	}
-	path = info.path;
-	info.path = rFullpath.test(path) ? path : _config_.base + path;
-	_remoteModules_[name] = info;
-}
+};
 
-var addModule = function(name, fn, details) {
-	var oq;
-	details = details || {};
-	oq = details.requires || [];
-	details.requires = _config_.util.concat(oq);
-	//remove prefix
-	name = name.replace(rModuleName, '$1');
-
-	_modules_[name] = {
+var addClosureModule = function(name, fn, details) {
+	closureModule[name] = {
 		name: name, 
 		fn: fn,
-		details: details
+		details: details || {}
 	}
 }
 
@@ -525,40 +522,41 @@ var bproto = {
 	_init: function() {
 		Boom.Env = Boom.Env || {
 			attached: {},
-			cidx: + new Date(),
-			mods: _modules_,
-			rmods: _remoteModules_,
-			thread: _thread_,
-			config: _config_
+			mods: closureModule,
+			rmods: fileModule,
+			thread: threads,
+			config: config
 		}
 		this.Env = this.Env || {
 			attached: {}
 		}
 	},
 
-	//generate uniqute id
+	// generate uniqute id
 	guid: function() {
-		return 'B' + (++ Boom.Env.cidx).toString(36);
+		return (++ now).toString(36);
 	},
 
-	//add module or file
+	// add file-module or closure-module
 	add: function() {
 		var args = [].slice.call(arguments, 0);
+
 		if (args.length == 1 && isObject(args[0])) {
-			addRemoteModule(args[0]);
+			addFileModule(args[0]);
 
 		} else if (typeof args[1] == 'function') {
-			addModule.apply(this, args);
+			addClosureModule.apply(this, args);
 
 		} else {
-			addRemoteModule.apply(this, args);
+			addFileModule.apply(this, args);
 		}
 	},
 	
-	//.load('a.js','http://xx.xx/a.js');
-	load: function() {
+	// Load module by url parallelly, but can't ensure
+	// executed in order.
+	load: function(callback) {
 		var ar = [].slice.call(arguments, 0);
-		loadRow(ar);
+		loadRow(ar, callback);
 		return this;
 	},
 
@@ -570,7 +568,7 @@ var bproto = {
 		var thread
 
 		callback = typeof args[len-1] == 'function' ? args.pop() : null;
-		thread = _thread_[threadId] = {
+		thread = threads[threadId] = {
 			id: threadId,
 			cb: callback,
 			mods: args,
@@ -582,7 +580,7 @@ var bproto = {
 	},
 
 	_attach: function(ar) {
-		var mods = _modules_;
+		var mods = closureModule;
 		var attached = this.Env.attached;
 		var i = 0;
 		var mod;
@@ -599,8 +597,7 @@ var bproto = {
 		}
 	},
 	
-	//Boom.register('people.name',100);
-	//Boom.people.name===100 ture;
+	// register a namespace on Boom object.
 	register: function(ns, value) {
 		var obj = this;
 		var path = ns.split('.');
@@ -625,13 +622,13 @@ var bproto = {
 
 	config: function(key, value) {
 		if (isObject(key)) {
-			mix(_config_, key, true);
+			mix(config, key, true);
 			
 		} else if(value) {
-			_config_[key] = value;
+			config[key] = value;
 			
 		} else {
-			return _config_[key];
+			return config[key];
 		}
 	},
 
@@ -640,9 +637,7 @@ var bproto = {
 		ordered = false;
 	},
 	//for debug end
-	mix: mix,
-	merge: merge,
-	extend: extend
+	mix: mix
 };
 
 Boom.prototype = bproto;
@@ -653,8 +648,5 @@ if (!win[symbol]) {
 	win[symbol] = win.CN6 = Boom;
 }
 
-if (win.location.search.indexOf('debug') > -1 || doc.cookie.indexOf('debug=') > -1) {
-	_config_.debug = true;
-}
 })(window, document)
 
