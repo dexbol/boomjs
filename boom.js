@@ -1,4 +1,4 @@
-/** @license Boom.js v6.0.0 , a javascript loader and manager | Any License You Want */
+/** @license Boom.js v6.0.1 , a javascript loader and manager | Any License You Want */
 
 
 
