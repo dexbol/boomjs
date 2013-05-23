@@ -1,4 +1,4 @@
-/** @license Boom.js v6.0.0 , a javascript loader and manager | Any License You Want */
+/** @license Boom.js v6.0.1 , a javascript loader and manager | Any License You Want */
 
 // for debug
 void function(win, doc) {
@@ -554,9 +554,9 @@ var bproto = {
 	
 	// Load module by url parallelly, but can't ensure
 	// executed in order.
-	load: function(callback) {
+	load: function() {
 		var ar = [].slice.call(arguments, 0);
-		loadRow(ar, callback);
+		loadRow(ar);
 		return this;
 	},
 

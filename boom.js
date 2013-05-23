@@ -492,9 +492,9 @@ var bproto = {
 	
 	// Load module by url parallelly, but can't ensure
 	// executed in order.
-	load: function(callback) {
+	load: function() {
 		var ar = [].slice.call(arguments, 0);
-		loadRow(ar, callback);
+		loadRow(ar);
 		return this;
 	},
 
