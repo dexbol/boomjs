@@ -55,22 +55,22 @@ Tricks
 
 *   Use moudles by url directly is more convenient sometimes. for example:
 
-	// don't worry execution order.
-	Boom.use('/workspace/jquery.js', '/workspace/jquery.plugin.js', function(instance) {
-		// use the jquery plugin.
-	});
+		// don't worry execution order.
+		Boom.use('/workspace/jquery.js', '/workspace/jquery.plugin.js', function(instance) {
+			// use the jquery plugin.
+		});
 
 *   If you add many file-module, and them in one directory, you can
 	do it like this:
 
-	Boom.config({
-		'base': '/directory/workspace/'
-	});
+		Boom.config({
+			'base': '/directory/workspace/'
+		});
 
-	// the file's path is  /directory/workspace/one.js
-	Boom.add('file-module', {
-		'path': 'one.js'
-	})
+		// the file's path is  /directory/workspace/one.js
+		Boom.add('file-module', {
+			'path': 'one.js'
+		})
 
 *   Use [Boombuilder](https://github.com/dexbol/boombuilder) can build project
 	by boomjs automaticly.
@@ -89,7 +89,7 @@ module solution to build bigger project too. And I need both in one page for
 back-compatible sometimes.
 
 When the YUI 3.0 release, I scan the source and it's amazing I think. Then I
-clone YUI seed solution and make this, and rewrite it once by once. Of course
+clone YUI seed solution and make this, and rewrite it over and over. Of course
 ,I don't know AMD yet in that time. Stupid? Maybe.
 
 
