@@ -460,7 +460,7 @@ var attachModule = function(thread) {
 
 	var process = function(n) {
 		var mod;
-		if (processed[mod]) {
+		if (processed[n]) {
 			return;
 		}
 		processed[n] = true;

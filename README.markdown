@@ -56,7 +56,8 @@ Tricks
 *   Use moudles by url directly is more convenient sometimes. for example:
 
 		// don't worry execution order.
-		Boom.use('/workspace/jquery.js', '/workspace/jquery.plugin.js', function(instance) {
+		Boom.use('/workspace/jquery.js', '/workspace/jquery.plugin.js',
+			function(instance) {
 			// use the jquery plugin.
 		});
 
@@ -72,8 +73,26 @@ Tricks
 			'path': 'one.js'
 		})
 
-*   Use [Boombuilder](https://github.com/dexbol/boombuilder) can build project
+*   Use [Bomb](https://github.com/dexbol/bomb) can build project
 	by boomjs automaticly.
+
+
+Style Guide
+============
+
+*   If closure-module created a object, the module name should be the same as
+	object name and it like this: `namespace.object` ,`namespace.ClassObject`,
+	`object` or `ClassObject`.
+
+*   If closure-module did not create any new object(maybe just extend a object
+	that exists), the moudle name should be like this: `namespace-feature`,
+	`exsitObject-feature`.
+
+*   The file name should be alway use lower case, and do not use dots(.)
+	and space in name,use dashes(-) or underscores(_) concatenate words.
+	So, `module-name.js` 	`module-name-sub.js` or `modulename` is *GOOD*,
+	`moduleName.js` `module.name.js` is *BAD*.
+
 
 
 Reinventing The Wheel? 

@@ -1,7 +1,7 @@
 import re
 import os
 from shutil import copyfile
-import boombuilder
+import bomb
 
 boom = open('boom.js')
 lines = boom.readlines()
@@ -27,5 +27,5 @@ boom = open('..' + os.sep + 'boom.js', 'w')
 boom.write(''.join(newContent))
 boom.close()
 copyfile('boom.js', '..' + os.sep + 'boom-debug.js')
-boombuilder.compile_js('..' + os.sep + 'boom.js', '..' + os.sep + 'boom-min.js')
+bomb.compile_js('..' + os.sep + 'boom.js', '..' + os.sep + 'boom-min.js')
 

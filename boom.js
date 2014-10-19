@@ -8,7 +8,7 @@ var LOADING = 1;
 var LOADED = 2;
 
 // closure-module: 
-// It's a piece of code isolation by closure that created by Boom.use method.
+// It's a piece of code isolation by closure that created by Boom.add method.
 // 
 // This object contains some information about closure-module's name, 
 // factory function and required modules. e.g.
@@ -399,7 +399,7 @@ var attachModule = function(thread) {
 
 	var process = function(n) {
 		var mod;
-		if (processed[mod]) {
+		if (processed[n]) {
 			return;
 		}
 		processed[n] = true;
