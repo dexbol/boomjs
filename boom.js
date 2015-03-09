@@ -1,4 +1,4 @@
-/** @license Boom.js v6.0.1 , a javascript loader and manager | Any License You Want */
+/** @license Boom.js v6.0.2 , a javascript loader and manager | Any License You Want */
 
 
 
@@ -269,7 +269,7 @@ var loadFile = function(name, callback) {
 
 			// http://www.phpied.com/async-javascript-callbacks/
 			this.onload = this.onreadystatechange = null;
-			this.parentNode.removeChild(this);
+			this.parentNode && this.parentNode.removeChild(this);
 		}
 	};
 

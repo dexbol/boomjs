@@ -1,0 +1,26 @@
+{
+  "name": "boomjs",
+  "version": "6.0.2",
+  "description": "javascript loader and manager",
+  "main": "boom.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dexbol/boomjs.git"
+  },
+  "keywords": [
+    "loader",
+    "frond-end"
+  ],
+  "author": "dexbol <dexbolg@gmail.com> (http://dexbol.com)",
+  "license": "ANY LICENSE YOU WANT",
+  "bugs": {
+    "url": "https://github.com/dexbol/boomjs/issues"
+  },
+  "homepage": "https://github.com/dexbol/boomjs"
+}

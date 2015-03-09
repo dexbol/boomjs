@@ -1,0 +1,19 @@
+{
+  "name": "boomjs",
+  "version": "6.0.2",
+  "homepage": "https://github.com/dexbol/boomjs",
+  "authors": [
+    "dexbol <dexbolg@gmail.com>"
+  ],
+  "description": "a javascript loader and manager",
+  "main": "boom.js",
+  "moduleType": [
+    "globals"
+  ],
+  "keywords": [
+    "boom",
+    "yui",
+    "loader"
+  ],
+  "license": "MIT"
+}
